@@ -4,7 +4,17 @@ function packageTemplate(){(function($N){$N[0][$N[1]]=(function acme_package(){}
 
     function build (filename,moduleName) {
 
-            var path = require("path"),
+            if (!filename) {
+                if(!process.mainModule) {
+                    return console.log("usage: build(filename,moduleName)");
+                }
+                throw new Error ("incorrect arguments passed to build");
+            }
+
+
+
+            var
+            path = require("path"),
             fs =require("fs"),
             UglifyJS     = require("uglify-js"),
             babel = require("babel-core"),
@@ -27,18 +37,40 @@ function packageTemplate(){(function($N){$N[0][$N[1]]=(function acme_package(){}
             };
 
 
+            moduleName = typeof moduleName==='string' ? moduleName :  path.basename(filename).split('.')[0].split('-').join('');
+
+
             var js_source;
 
             js_source=require(filename);
             if (typeof js_source!=='function') {
                 js_source = fs.readFileSync(filename,"utf8").trim();
                 js_source = js_source.substr(0,js_source.lastIndexOf('}'));
+                if(!process.mainModule) {
+                    console.log("loaded module as string:",js_source.length,"chars");
+                }
+            } else {
+                if(!process.mainModule) {
+                    console.log("detected exported function:",js_source.toString().length,"chars");
+                }
+
             }
 
+            var pkg_filename = filename.replace(/\.js$/,'.pkg.js') ;
+            var min_filename = filename.replace(/\.js$/,'.min.js') ;
+
             js_source = makePackage(moduleName,js_source);
-            fs.writeFileSync(filename.replace(/\.js$/,'.pkg.js') ,js_source);
+            fs.writeFileSync(pkg_filename ,js_source);
+            if(!process.mainModule) {
+                console.log("wrote:",pkg_filename);
+                console.log("packaged source:",js_source.length,"chars. minifying...");
+            }
             js_source = minifyJS(js_source);
-            fs.writeFileSync(filename.replace(/\.js$/,'.min.js'),js_source);
+            fs.writeFileSync(min_filename,js_source);
+            if(!process.mainModule) {
+                console.log("wrote:",min_filename);
+                console.log("final minifed source:",js_source.length,"chars");
+            }
 
             function makePackage(name,pkg_fn){
 
@@ -61,7 +93,7 @@ function packageTemplate(){(function($N){$N[0][$N[1]]=(function acme_package(){}
     }
 }
 
-function extraFunctionNotExported() {
 
-    return 4;
+if(!process.mainModule) {
+    global.build = module.exports().build;
 }
