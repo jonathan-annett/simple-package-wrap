@@ -1,5 +1,4 @@
-module.exports = function ()
-{
+(function(x){x[0][x[1]]=(function(){
 function packageTemplate(){(function(x){x[0][x[1]]=(function acme_package(){})();})(typeof process+typeof module+typeof require==='objectobjectfunction'?[module,"exports"]:[window,"${acme}"]);}
 
     function build (filename,moduleName) {
@@ -52,4 +51,4 @@ function packageTemplate(){(function(x){x[0][x[1]]=(function acme_package(){})()
         build : build,
         packageTemplate : packageTemplate
     }
-}
+})();})(typeof process+typeof module+typeof require==='objectobjectfunction'?[module,"exports"]:[window,"simplePackageWrap"]);

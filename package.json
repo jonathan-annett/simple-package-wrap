@@ -14,7 +14,7 @@
   },
   "scripts": {},
   "keywords": [],
-  "main": "index.js",
+  "main": "index.pkg.js",
   "name": "simple-package-wrap",
   "repository": {
     "url": "https://github.com/jonathan-annett/simple-package-wrap",
