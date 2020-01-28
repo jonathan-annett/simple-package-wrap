@@ -1,6 +1,6 @@
 module.exports = function ()
 {
-function packageTemplate(){(function(x){x[0][x[1]]=(function acme_package(){})();})(typeof process+typeof module+typeof require==='objectobjectfunction'?[module,"exports"]:[window,"${acme}"]);}
+function packageTemplate(){(function($N){$N[0][$N[1]]=(function acme_package(){})();})(typeof process+typeof module+typeof require==='objectobjectfunction'?[module,"exports"]:[window,"${acme}"]);}
 
     function build (filename,moduleName) {
 
@@ -41,7 +41,7 @@ function packageTemplate(){(function(x){x[0][x[1]]=(function acme_package(){})()
                 template = template.substring(template.indexOf('{')+1,template.length-1).trim().split('function acme_package(){}');
                 template.push(template.pop().split('${acme}').join(name));
 
-                return template.join(('function()'+pkg_bare.substring(pkg_bare.indexOf('{'))));
+                return template.join(('function(){$N=!!$N[0].id;'+pkg_bare.substring(pkg_bare.indexOf('{')+1)));
             }
 
 
