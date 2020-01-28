@@ -24,8 +24,9 @@ myfile.js
           }
 
 
-then 
+then
 
 **output**
 myfile.pkg.js
 ---
+
