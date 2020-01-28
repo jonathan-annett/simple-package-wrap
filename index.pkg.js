@@ -26,11 +26,18 @@ function packageTemplate(){(function($N){$N[0][$N[1]]=(function acme_package(){}
             };
 
 
-            var js_zipWrap_js = fs.readFileSync(filename,"utf8");
-            js_zipWrap_js = makePackage(moduleName,js_zipWrap_js);
-            fs.writeFileSync(filename.replace(/\.js$/,'.pkg.js') ,js_zipWrap_js);
-            js_zipWrap_js = minifyJS(js_zipWrap_js);
-            fs.writeFileSync(filename.replace(/\.js$/,'.min.js'),js_zipWrap_js);
+            var js_source;
+
+            js_source=require(filename);
+            if (typeof js_source!=='function') {
+                js_source = fs.readFileSync(filename,"utf8").trim();
+                js_source = js_source.substr(0,js_source.lastIndexOf('}'));
+            }
+
+            js_source = makePackage(moduleName,js_source);
+            fs.writeFileSync(filename.replace(/\.js$/,'.pkg.js') ,js_source);
+            js_source = minifyJS(js_source);
+            fs.writeFileSync(filename.replace(/\.js$/,'.min.js'),js_source);
 
             function makePackage(name,pkg_fn){
 
