@@ -72,7 +72,9 @@ module.exports = function ()
 
     function preloadedEmbed(fn,comment){
         var src = "(function(){\n"+
+        "/* jshint ignore:start */\n"+
         "/*"+comment+"*/\n"+fn.toString()+"\n"+
+        "/* jshint ignore:end */\n"+
         "})();\n";
         return src;
     }
