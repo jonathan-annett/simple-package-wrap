@@ -237,6 +237,9 @@ function multiPackageTemplate2(){(function($N){$N["${acme}"]=(function acme_pack
                 if (x.constructor===Array) {
                     var res = [];
                     x.forEach(function(el){
+                        if (x.mod && x.js) {
+                           return res.push(x);
+                        }
                         var mods = mod_list(el);
                         if (mods.length>0) {
                             res.push.apply(res,mods);
@@ -244,6 +247,9 @@ function multiPackageTemplate2(){(function($N){$N["${acme}"]=(function acme_pack
                     });
                     return res;
                 }
+
+                if (x.mod && x.js) return [x];
+
                 return Object.keys(x).map(function(nm){
                       return {mod:nm, js : x[nm]};
                 });
