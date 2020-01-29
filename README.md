@@ -113,11 +113,20 @@ eg
 
 Where do they end up?
 ---
-In the browser, each module ends up in window as it's own module, whereas in node.js, each submodule is basically a varable inside the object returned by require();
+In the browser, each module ends up in `window` under it's name as a property (eg `window.myModule`) , whereas in node.js, each sub module is basically a property inside the object returned by require() - eg require("./mymod.pkg.js").myModule;
 
-also note that the individual module files are still generated when you use buildMulti, using the same naming conventions, and that doing
 
-buildMulti(["./somefile.js","./some-sub-module.js"],"./somefile.js"); will NOT end up overwriting "./somefile.js" even though you have specified the samename as input and output - this is by design. all output files will end in `.pkg.js` or `min.js`, to avoid any issues along those lines. so the above example would create:
+Output files
+---
+The individual module files are still generated when you use buildMulti, using the same naming conventions
+
+consider the example
+
+    buildMulti(["./somefile.js","./some-sub-module.js"],"./somefile.js")
+
+this will NOT end up overwriting "./somefile.js" even though you have specified the samename as input and output - this is by design - all output files will end in `.pkg.js` or `min.js`, to avoid any issues along those lines.
+
+so the above example would create:
 
 "./somefile.pkg.js", and "./somefile.min.js"
 "./some-sub-module.pkg.js" and "./some-sub-module.min.js"
