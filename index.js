@@ -78,11 +78,11 @@ module.exports = function ()
         var src =
         "\n/*"+comment+"*/\n"+
         "$N['"+name+"']="+
-        "(function(module){return (function(exports,window){\n"+
+        "(function(module){ (function(exports,window){\n"+
         "/* jshint ignore:start */\n"+
         fn.toString()+"\n"+
         "/* jshint ignore:end */\n"+
-        "})(module.exports,module.exports);return module.exports;})({exports:{}));\n";
+        "})(module.exports,module.exports);return module.exports;})({exports:{});\n";
         return src;
     }
 
