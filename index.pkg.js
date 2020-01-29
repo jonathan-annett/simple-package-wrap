@@ -75,14 +75,15 @@ var
         return src;
     }
 
-    function preloadedEmbed(fn,comment){
+    function preloadedEmbed(fn,name,comment){
         var src =
         "\n/*"+comment+"*/\n"+
-        "(function(){\n"+
+        "$N['"+name+"']="+
+        "(function(module){return (function(exports,window){\n"+
         "/* jshint ignore:start */\n"+
         fn.toString()+"\n"+
         "/* jshint ignore:end */\n"+
-        "})();\n";
+        "})(module.exports,module.exports);return module.exports;})({exports:{}));\n";
         return src;
     }
 
