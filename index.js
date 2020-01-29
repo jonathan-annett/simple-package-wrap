@@ -1,6 +1,10 @@
+var $N=true;
+
 module.exports = function ()
 {
 
+    if (!$N) throw new Error("you need node.js to use this file");
+    
     var
 
     path           = require("path"),

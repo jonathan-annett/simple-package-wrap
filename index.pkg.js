@@ -2,7 +2,9 @@
 
 /*./index.js*/
 $N[0][$N[1]]=(function($N){
-var
+if (!$N) throw new Error("you need node.js to use this file");
+    
+    var
 
     path           = require("path"),
     fs             = require("fs"),
