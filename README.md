@@ -129,9 +129,16 @@ this will NOT end up overwriting "./somefile.js" even though you have specified 
 so the above example would create:
 
 "./somefile.pkg.js", and "./somefile.min.js"
+
 "./some-sub-module.pkg.js" and "./some-sub-module.min.js"
 
-and then go ahead and replace "./somefile.pkg.js", and "./somefile.min.js" with the combined output files. so if for some reason you wanted somefile.js without it's dependancies as a separate file, you'd be better to give the output file a different name altogether. if the other files truely are dependancies, it might make more sense to do it as described in the example. up to you! in any case, input source files will never be overwritten due to the naming conventions used.
+It would then go ahead and replace "./somefile.pkg.js", and "./somefile.min.js" with the combined output files.
+
+So if for some reason you wanted somefile.pkg.js without it's dependancies as a separate file, you'd be better to give the output file a different name altogether.
+
+if the other files truely are dependancies, it might make more sense to do it as described in the example.
+
+in any case, input source files will never be overwritten due to the naming conventions used.
 
 buildNamed
 ---
