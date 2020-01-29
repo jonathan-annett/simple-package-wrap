@@ -212,7 +212,7 @@ var
                 return  handler (el.js,el.mod,path.basename(el.file));
             }).join('\n') +
 
-        '})([typeof process+typeof module+typeof require==="objectobjectfunction"?module.exports:window]);';
+        '})(typeof process+typeof module+typeof require==="objectobjectfunction"?module.exports:window);';
 
 
     }
