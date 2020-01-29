@@ -76,9 +76,54 @@ sample.min.js
 **about the 2 output files**
 ---
 
-if you are testing your code in node.js and don't want to package it each time, just `require("whatever.js")()`  the file noting the additional invocatoin brackets.
-if you need to test in the browser, you can just put `require("simple-package-wrap").build(__filename,"modulename");` as the first line of the module, which will mean a fresh copy of the output files will be created on server startup. (or if you have a lot of modules, you could choose to do all this in your main module like so:
+both versions (x.pkg.js & x.min.js) resolve to "exploded" modules (ie the function you defined in your module.exports gets invoked as it is applied to the window/module.exports) section at runtime.
 
-     ["./my-module1.js","./my-module2.js"].forEach(require("simple-package-wrap").build);
+if however, you are testing your input source code in node.js you need to  `require("whatever.js")()` the file **note the additional invocation brackets.**
 
-node that doing it this way will force a defualt module names to be used in this case `mymodule1` and `mymodule2`
+
+module combining
+----
+
+for browser deployment, you often need multiple associated modules and always want them "together".for development reasons, it's best to keep them as sepearate source files, but for efficiency and debugging, having them combined can be useful.
+
+for this reason there are 2 additional variants of the build function:
+
+buildMulti
+---
+
+buildMulti() accepts an array of filenames (or an array of descriptors in format `{mod:"moduleName",js:"./javascript_filename.js"}` ) or an object with key value pairs in the format `{module1:"./javascript1.js",module2:"./module2.js"}`, or a combination of any of these
+
+eg
+
+        buildMulti([
+
+         "./myfile1.js",
+
+         { myRenamedModule : "./nothingLikeTheOriginalname.js" },
+
+         {
+           mod : "myModule",
+           js  : "./filename.js"
+         }
+
+        ],"myoutput.js");
+
+
+note - the browser, each module ends up in window as it's own module, whereas in node.js, each submodule is basically a varable inside the object returned by require();
+
+also note that the individual module files are still generated when you use buildMulti, using the same naming conventions, and that doing
+
+buildMulti(["./somefile.js","./some-sub-module.js"],"./somefile.js"); will NOT end up overwriting "./somefile.js" even though you have specified the samename as input and output - this is by design. all output files will end in `.pkg.js` or `min.js`, to avoid any issues along those lines. so the above example would create:
+
+"./somefile.pkg.js", and "./somefile.min.js"
+"./some-sub-module.pkg.js" and "./some-sub-module.min.js"
+
+and then go ahead and replace "./somefile.pkg.js", and "./somefile.min.js" with the combined output files. so if for some reason you wanted somefile.js without it's dependancies as a separate file, you'd be better to give the output file a different name altogether. if the other files truely are dependancies, it might make more sense to do it as described in the example. up to you! in any case, input source files will never be overwritten due to the naming conventions used.
+
+buildNamed
+---
+
+
+buildNamed() takes exactly the same paramaters as, buildMulti, but presents the package in a slightly more human readable format.
+
+the reason buildMulti() exists is basically to keep a similar structure to build().
