@@ -1,8 +1,48 @@
 module.exports = function ()
 {
-function packageTemplate(){(function($N){$N[0][$N[1]]=(function acme_package(){})();})(typeof process+typeof module+typeof require==='objectobjectfunction'?[module,"exports"]:[window,"${acme}"]);}
+function packageTemplate(){(function($N){$N[0][$N[1]]=(function acme_package(){})(!$N[0].Document);})(typeof process+typeof module+typeof require==='objectobjectfunction'?[module,"exports"]:[window,"${acme}"]);}
+function multiPackageTemplate(){(function($N){$N[0][$N[1]]=(function acme_package(){})(!$N[0].Document);})([typeof process+typeof module+typeof require==='objectobjectfunction'?module.exports:window,"${acme}"]);}
+function multiPackageTemplate2(){(function($N){$N["${acme}"]=(function acme_package(){})(!$N.Document);})(typeof process+typeof module+typeof require==='objectobjectfunction'?module.exports:window);}
+
+
+    var
+    path = require("path"),
+    fs =require("fs"),
+    UglifyJS     = require("uglify-js"),
+    babel = require("babel-core"),
+    minifyJS = function minifyJS( js_src ) {
+       var result1= UglifyJS.minify(js_src, {
+           parse: {},
+           compress: {},
+           mangle: false,
+           comments:false,
+           output: {
+               code: true
+           }
+       });
+
+       var result2 = babel.transform(js_src,{minified:true,comments:false});
+
+
+       if (!result1.code) return result2.code;
+
+       return  (result1.code.length < result2.code.length) ? result1.code : result2.code;
+    };
+
 
     function build (filename,moduleName) {
+
+            var isList = typeof filename === 'object' && filename.mod && filename.js,
+                listIndex,list;
+
+            if (isList) {
+                moduleName = filename.mod;
+                filename   = filename.js;
+                listIndex =arguments[1];
+                list=arguments[2];
+            } else {
+                moduleName  = typeof moduleName==='string' ? moduleName : def_mod_name(filename);
+            }
 
             if (!filename) {
                 if(!process.mainModule) {
@@ -13,31 +53,6 @@ function packageTemplate(){(function($N){$N[0][$N[1]]=(function acme_package(){}
 
 
 
-            var
-            path = require("path"),
-            fs =require("fs"),
-            UglifyJS     = require("uglify-js"),
-            babel = require("babel-core"),
-            minifyJS = function minifyJS( js_src ) {
-               var result1= UglifyJS.minify(js_src, {
-                   parse: {},
-                   compress: {},
-                   mangle: false,
-                   output: {
-                       code: true
-                   }
-               });
-
-               var result2 = babel.transform(js_src,{minified:true});
-
-
-               if (!result1.code) return result2.code;
-
-               return  (result1.code.length < result2.code.length) ? result1.code : result2.code;
-            };
-
-
-            moduleName = typeof moduleName==='string' ? moduleName :  path.basename(filename).split('.')[0].split('-').join('');
 
 
             var js_source;
@@ -59,6 +74,14 @@ function packageTemplate(){(function($N){$N[0][$N[1]]=(function acme_package(){}
             var pkg_filename = filename.replace(/\.js$/,'.pkg.js') ;
             var min_filename = filename.replace(/\.js$/,'.min.js') ;
 
+            var result = {
+                js   : js_source,
+                name : moduleName,
+                file : filename,
+                pkg  : { file : pkg_filename},
+                min  : { file : min_filename},
+            };
+
             js_source = makePackage(moduleName,js_source);
             fs.writeFileSync(pkg_filename ,js_source);
             if(!process.mainModule) {
@@ -72,28 +95,163 @@ function packageTemplate(){(function($N){$N[0][$N[1]]=(function acme_package(){}
                 console.log("final minifed source:",js_source.length,"chars");
             }
 
-            function makePackage(name,pkg_fn){
-
-                var pkg_bare = pkg_fn.toString().trimEnd();
-
-                var template = packageTemplate.toString().trimEnd();
-                template = template.substring(template.indexOf('{')+1,template.length-1).trim().split('function acme_package(){}');
-                template.push(template.pop().split('${acme}').join(name));
-
-                return template.join(('function(){$N=!!$N[0].id;'+pkg_bare.substring(pkg_bare.indexOf('{')+1)));
-            }
-
-
+            return isList ? result : undefined;
 
         }
 
-    return {
-        build : build,
-        packageTemplate : packageTemplate
+    function makePackage(name,pkg_fn){
+
+        var pkg_bare = pkg_fn.toString().trimEnd();
+
+        var template = packageTemplate.toString().trimEnd();
+        template = template.substring(template.indexOf('{')+1,template.length-1).trim().split('function acme_package(){}');
+        template.push(template.pop().split('${acme}').join(name));
+
+        return template.join(('function($N){'+pkg_bare.substring(pkg_bare.indexOf('{')+1)));
     }
-}
+
+    function makeMultiPackage(mods){
+
+
+        var template = multiPackageTemplate.toString().trimEnd();
+        template = template.substring(template.indexOf('{')+1,template.length-1).trim().split('$N[0][$N[1]]=(function acme_package(){})(!$N[0].Document);');
+        template.push(
+
+            template.pop().split('"${acme}"').join(
+
+                mods.map(
+
+                    function(el){return JSON.stringify(el.name);}
+
+                    ).join(",")
+
+            )
+        );
+
+
+        return template.join(mods.map(function(el,ix){
+
+            var pkg_bare = el.js.toString().trimEnd();
+            var skip = ix===0?'\n':'';
+            return skip+'/* '+el.name+' (source in '+path.basename(el.file) +') */\n'+
+            '$N[0][$N['+String(1+ix)+']]=(function($N){'+pkg_bare.substring(pkg_bare.indexOf('{')+1)+')(!$N[0].Document);\n';
+
+        }).join (''));
+
+    }
+
+    function makeMultiPackage2(mods){
+
+
+        var template = multiPackageTemplate2.toString().trimEnd();
+        template = template.substring(template.indexOf('{')+1,template.length-1).trim().split('$N["${acme}"]=(function acme_package(){})(!$N.Document);');
+       /* template.push(
+
+            template.pop().split('"${acme}"').join(
+
+                mods.map(
+
+                    function(el){return JSON.stringify(el.name);}
+
+                    ).join(",")
+
+            )
+        );*/
+
+
+        return template.join(mods.map(function(el,ix){
+
+            var pkg_bare = el.js.toString().trimEnd();
+            var skip = ix===0?'\n':'';
+            return skip+'/* '+el.name+' (source in '+path.basename(el.file) +') */\n'+
+            '$N['+JSON.stringify(el.name)+']=(function($N){'+pkg_bare.substring(pkg_bare.indexOf('{')+1)+')(!$N.Document);\n';
+//            '$N[0][$N['+String(1+ix)+']]=(function($N){'+pkg_bare.substring(pkg_bare.indexOf('{')+1)+')(!!$N[0].id);\n';
+
+        }).join (''));
+
+    }
+
+    function def_mod_name(filename) {
+        return require("path").basename(filename).split('.')[0].split('-').join('');
+    }
+
+    function mod_list(x) {
+        /*
+
+         modlist('somefile.js') ----> [ {js:'somefile.js', mod:'somefile'} ]
+         ['somefile1.js', 'somefile2.js' ] ----> [ {js:'somefile1.js', mod:'somefile1'},{js:'somefile2.js', mod:'somefile2'} ]
+
+         {
+            custom1     : 'somefile1.js',
+            otherThing : 'somefile2.js',
+
+         } ----> [ {js:'somefile1.js', mod:'custom1'},{js:'somefile2.js', mod:'otherThing'} ]
+
+        */
+
+         switch(typeof x) {
+            case "string" : return [{mod:def_mod_name(x), js : x}];
+            case "object" :
+                if (x.constructor===Array) {
+                    var res = [];
+                    x.forEach(function(el){
+                        var mods = mod_list(el);
+                        if (mods.length>0) {
+                            res.push.apply(res,mods);
+                        }
+                    });
+                    return res;
+                }
+                return Object.keys(x).map(function(nm){
+                      return {mod:nm, js : x[nm]};
+                });
+            default: return [];
+        }
+
+    }
+
+    function buildMulti(x,filename) {
+
+        var pkg_filename = filename.replace(/\.js$/,'.pkg.js') ;
+        var min_filename = filename.replace(/\.js$/,'.min.js') ;
+
+        var list  = mod_list(x);
+        var built = list.map(build);
+        var multi_source = makeMultiPackage(built);
+        fs.writeFileSync(pkg_filename,multi_source);
+
+        multi_source = minifyJS(multi_source);
+        fs.writeFileSync(min_filename,multi_source);
+
+    }
+
+
+    function buildNamed(x,filename) {
+
+        var pkg_filename = filename.replace(/\.js$/,'.pkg.js') ;
+        var min_filename = filename.replace(/\.js$/,'.min.js') ;
+
+        var list  = mod_list(x);
+        var built = list.map(build);
+        var multi_source = makeMultiPackage2(built);
+        fs.writeFileSync(pkg_filename,multi_source);
+
+        multi_source = minifyJS(multi_source);
+        fs.writeFileSync(min_filename,multi_source);
+
+    }
+
+
+    return {
+        build           : build,
+        buildMulti      : buildMulti,
+        buildNamed      : buildNamed
+    };
+};
 
 
 if(!process.mainModule) {
-    global.build = module.exports().build;
+    global.build      = module.exports().build;
+    global.buildMulti = module.exports().buildMulti;
+    global.buildNamed = module.exports().buildNamed;
 }
