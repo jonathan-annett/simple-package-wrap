@@ -65,6 +65,18 @@ module.exports = function ()
         return src;
     }
 
+    function preloadedEmbed(fn,ix,comment){
+        var src =
+        "\n/*"+comment+"*/\n"+
+        "$N[0][$N["+String(ix+1)+"]]="+
+        "(function(module){ (function(exports,window){\n"+
+        "/* jshint ignore:start */\n"+
+        fn.toString()+"\n"+
+        "/* jshint ignore:end */\n"+
+        "})(module.exports,module.exports);return module.exports;})({exports:{});\n";
+        return src;
+    }
+
     function installNamedEmbed(fn,name,comment){
         var src =
         "\n/*"+comment+"*/\n"+
@@ -74,7 +86,7 @@ module.exports = function ()
         return src;
     }
 
-    function preloadedEmbed(fn,name,comment){
+    function preloadedNamedEmbed(fn,name,comment){
         var src =
         "\n/*"+comment+"*/\n"+
         "$N['"+name+"']="+
@@ -86,8 +98,9 @@ module.exports = function ()
         return src;
     }
 
+
     function makePackage(name,fn,listIndex,comment){
-        var source = isPreloaded(fn) ? preloadedEmbed(fn,name,comment) : installEmbed(fn,listIndex,comment);
+        var source = isPreloaded(fn) ? preloadedEmbed(fn,listIndex,comment) : installEmbed(fn,listIndex,comment);
         return "(function($N){\n"+
         source+"\n"+
         "})(typeof process+typeof module+typeof require==='objectobjectfunction'?[module,'exports']:[window,'"+name+"']);\n";
@@ -182,7 +195,8 @@ module.exports = function ()
 
             mods.map(function(el,listIndex) {
                 delete el.index;
-                return  isPreloaded(el.js) ? preloadedEmbed(el.js,el.mod,path.basename(el.file)) : installEmbed(el.js,listIndex,path.basename(el.file));
+                var handler = (isPreloaded(el.js) ? preloadedEmbed : installEmbed);
+                return handler(el.js,listIndex,path.basename(el.file));
             }).join('\n') +
         '})([typeof process+typeof module+typeof require==="objectobjectfunction"?module.exports:window,'+
 
@@ -192,14 +206,15 @@ module.exports = function ()
 
     }
 
-    function makeMultiPackage2(mods){
+    function makeNamedPackage(mods){
 
 
         return '(function($N){\n'+
 
-            mods.map(function(el,listIndex) {
+            mods.map(function(el) {
                 delete el.index;
-                return  isPreloaded(el.js) ? preloadedEmbed(el.js,el.mod,path.basename(el.file)) : installNamedEmbed(el.js,el.mod,path.basename(el.file));
+                var handler = (isPreloaded(el.js) ? preloadedNamedEmbed : installNamedEmbed);
+                return  handler (el.js,el.mod,path.basename(el.file));
             }).join('\n') +
 
         '})([typeof process+typeof module+typeof require==="objectobjectfunction"?module.exports:window]);';
@@ -280,7 +295,7 @@ module.exports = function ()
 
         var list  = mod_list(x);
         var built = list.map(build);
-        var multi_source = makeMultiPackage2(built);
+        var multi_source = makeNamedPackage(built);
         fs.writeFileSync(pkg_filename,multi_source);
 
         multi_source = minifyJS(multi_source);
