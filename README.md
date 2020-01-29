@@ -111,7 +111,9 @@ eg
         ],"myoutput.js");
 
 
-note - the browser, each module ends up in window as it's own module, whereas in node.js, each submodule is basically a varable inside the object returned by require();
+Where do they end up?
+---
+In the browser, each module ends up in window as it's own module, whereas in node.js, each submodule is basically a varable inside the object returned by require();
 
 also note that the individual module files are still generated when you use buildMulti, using the same naming conventions, and that doing
 
