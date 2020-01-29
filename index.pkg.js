@@ -1,5 +1,5 @@
 (function($N){
-$N[0][$N[index1]]=(function($N){
+$N[0][$N[1]]=(function($N){
 /*./index.js*/
 var
 
@@ -254,4 +254,4 @@ var
     };
 })(!$N[0].Document);
 
-})(typeof process+typeof module+typeof require==='objectobjectfunction'?[module,'exports']:[window,'index']);
+})(typeof process+typeof module+typeof require==='objectobjectfunction'?[module,'exports']:[window,'simplePackageWrap']);
