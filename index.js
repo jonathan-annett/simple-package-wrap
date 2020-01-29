@@ -29,15 +29,41 @@ function multiPackageTemplate2(){(function($N){$N["${acme}"]=(function acme_pack
        return  (result1.code.length < result2.code.length) ? result1.code : result2.code;
     };
 
+    function isPreloaded(fn) {
+        switch (typeof fn) {
+            case 'string' : return false;
+            case 'object' : return true;
+            case 'function':
+                if (fn.name!=='' || Object.keys(fn)>0|| fn.length>0) return true;
+        }
+        return false;
+    }
+
+    function nodify(fn,comment){
+        return (function () {
+                    var fkmod = {exports:{}};
+                    (function (process,module,require) {
+                        //code
+                    })({env:{},cwd:function(){return"/"}},fkmod,function(){return {};});
+                    return fkmod.exports;
+                }).toString().split('//code').join("\n/*"+comment+"*/"+fn.toString()+"\n");
+    }
+
 
     function build (filename,moduleName) {
+
+            var pkg_filename;
+            var min_filename;
+
 
             var isList = typeof filename === 'object' && filename.mod && filename.js,
                 listIndex,list;
 
             if (isList) {
-                moduleName = filename.mod;
-                filename   = filename.js;
+                moduleName   = filename.mod;
+                filename     = filename.js;
+                pkg_filename = filename.pkg;
+                min_filename = filename.min;
                 listIndex =arguments[1];
                 list=arguments[2];
             } else {
@@ -55,9 +81,11 @@ function multiPackageTemplate2(){(function($N){$N["${acme}"]=(function acme_pack
 
 
 
-            var js_source;
+            var js_source, preloaded=false;
 
+            //todo: use vm with sandbox here.
             js_source=require(filename);
+
             if (typeof js_source!=='function') {
                 js_source = fs.readFileSync(filename,"utf8").trim();
                 js_source = js_source.substr(0,js_source.lastIndexOf('}'));
@@ -65,19 +93,29 @@ function multiPackageTemplate2(){(function($N){$N["${acme}"]=(function acme_pack
                     console.log("loaded module as string:",js_source.length,"chars");
                 }
             } else {
-                if(!process.mainModule) {
-                    console.log("detected exported function:",js_source.toString().length,"chars");
+                preloaded=isPreloaded(js_source);
+                if ( preloaded ) {
+                    js_source = nodify(fs.readFileSync(filename,"utf8"),'injected:'+filename);
+
+                    if(!process.mainModule) {
+                        console.log("detected preloaded module, embeding raw source:",js_source.toString().length,"chars");
+                    }
+                } else {
+                    if(!process.mainModule) {
+                        console.log("detected exported function:",js_source.toString().length,"chars");
+                    }
                 }
 
             }
 
-            var pkg_filename = filename.replace(/\.js$/,'.pkg.js') ;
-            var min_filename = filename.replace(/\.js$/,'.min.js') ;
+            pkg_filename = pkg_filename || filename.replace(/\.js$/,'.pkg.js') ;
+            min_filename = min_filename || filename.replace(/\.js$/,'.min.js') ;
 
             var result = {
                 js   : js_source,
                 name : moduleName,
                 file : filename,
+                preloaded : preloaded ? js_source : false,
                 pkg  : { file : pkg_filename},
                 min  : { file : min_filename},
             };
@@ -88,11 +126,16 @@ function multiPackageTemplate2(){(function($N){$N["${acme}"]=(function acme_pack
                 console.log("wrote:",pkg_filename);
                 console.log("packaged source:",js_source.length,"chars. minifying...");
             }
-            js_source = minifyJS(js_source);
-            fs.writeFileSync(min_filename,js_source);
-            if(!process.mainModule) {
-                console.log("wrote:",min_filename);
-                console.log("final minifed source:",js_source.length,"chars");
+
+            if (preloaded && filename.endsWith(".min.js")) {
+                delete result.min;
+            } else {
+                js_source = minifyJS(js_source);
+                fs.writeFileSync(min_filename,js_source);
+                if(!process.mainModule) {
+                    console.log("wrote:",min_filename);
+                    console.log("final minifed source:",js_source.length,"chars");
+                }
             }
 
             return isList ? result : undefined;
@@ -224,7 +267,6 @@ function multiPackageTemplate2(){(function($N){$N["${acme}"]=(function acme_pack
         fs.writeFileSync(min_filename,multi_source);
 
     }
-
 
     function buildNamed(x,filename) {
 

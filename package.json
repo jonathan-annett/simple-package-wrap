@@ -9,13 +9,13 @@
   "license": "MIT",
   "dependencies": {
     "babel-core": "^6.26.3",
+    "jszip": "^3.2.2",
     "uglify-js": "^3.7.2"
   },
-  "devDependencies": {
-  },
+  "devDependencies": {},
   "scripts": {
-      "build"     : "node -e 'require(\"./index.js\")  ().build(\"./index.js\",\"simplePackageWrap\");'",
-      "test"      : "node -e 'require(\"./index.pkg.js\").build(\"./index.js\",\"simplePackageWrap\");'"
+    "build": "node -e 'require(\"./index.js\")  ().build(\"./index.js\",\"simplePackageWrap\");'",
+    "test": "node -e 'require(\"./index.pkg.js\").build(\"./index.js\",\"simplePackageWrap\");'"
   },
   "keywords": [],
   "main": "index.pkg.js",

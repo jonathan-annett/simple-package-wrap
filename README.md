@@ -2,6 +2,7 @@
 
 - wraps javascipt modules for browser/node.js loading with minimal overhead
 - creates minified versions as well as debug versions of your package
+- does not support modules that `require()` other modules - this is part of a bootloader for larger a project ( see jsbldr & jsextensions repos for a way of doing that - both still under development, so use at your own risk). having said that, the buildMulti() & buildNamed() functions pretty much eliminate the need for require().
 
 installation
 ===
