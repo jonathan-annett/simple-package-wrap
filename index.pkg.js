@@ -66,16 +66,17 @@ var
         return src;
     }
 
+    function preloadedExploder(fn) {
+        return "(function($N,$E){$N[$E]={};(function(module,exports,window){\n"+
+               "/* jshint ignore:start */\n"+
+               fn.toString()+"\n"+
+               "/* jshint ignore:end */\n"+
+               "})($N,$N[$E],$N[$E]);return $N[$E];})({},'exports');\n";
+    }
+
     function preloadedEmbed(fn,ix,comment){
-        var src =
-        "\n/*"+comment+"*/\n"+
-        "$N[0][$N["+String(ix+1)+"]]="+
-        "(function(module){ (function(exports,window){\n"+
-        "/* jshint ignore:start */\n"+
-        fn.toString()+"\n"+
-        "/* jshint ignore:end */\n"+
-        "})(module.exports,module.exports);return module.exports;})({exports:{});\n";
-        return src;
+        return "\n/*"+comment+"*/\n"+
+        "$N[0][$N["+String(ix+1)+"]]="+preloadedExploder(fn);
     }
 
     function installNamedEmbed(fn,name,comment){
@@ -88,15 +89,8 @@ var
     }
 
     function preloadedNamedEmbed(fn,name,comment){
-        var src =
-        "\n/*"+comment+"*/\n"+
-        "$N['"+name+"']="+
-        "(function(module){ (function(exports,window){\n"+
-        "/* jshint ignore:start */\n"+
-        fn.toString()+"\n"+
-        "/* jshint ignore:end */\n"+
-        "})(module.exports,module.exports);return module.exports;})({exports:{});\n";
-        return src;
+        return "\n/*"+comment+"*/\n"+
+        "$N['"+name+"']="+preloadedExploder(fn);
     }
 
 
