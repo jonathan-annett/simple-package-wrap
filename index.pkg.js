@@ -1,6 +1,7 @@
 (function($N){
-$N[0][$N[1]]=(function($N){
+
 /*./index.js*/
+$N[0][$N[1]]=(function($N){
 var
 
     path           = require("path"),
@@ -57,23 +58,29 @@ var
     }
 
     function installEmbed(fn,ix,comment){
-        var src = "$N[0][$N["+String(ix+1)+"]]=(function($N){\n"+
-            "/*"+comment+"*/\n"+(typeof fn==='function'?extract_fn(fn):fn)+"\n"+
+        var src =
+        "\n/*"+comment+"*/\n"+
+        "$N[0][$N["+String(ix+1)+"]]=(function($N){\n"+
+        (typeof fn==='function'?extract_fn(fn):fn)+"\n"+
         "})(!$N[0].Document);\n";
         return src;
     }
 
     function installNamedEmbed(fn,name,comment){
-        var src = "$N['"+name+"']=(function($N){\n"+
-            "/*"+comment+"*/\n"+(typeof fn==='function'?extract_fn(fn):fn)+"\n"+
+        var src =
+        "\n/*"+comment+"*/\n"+
+        "$N['"+name+"']=(function($N){\n"+
+            (typeof fn==='function'?extract_fn(fn):fn)+"\n"+
         "})(!$N.Document);\n";
         return src;
     }
 
     function preloadedEmbed(fn,comment){
-        var src = "(function(){\n"+
+        var src =
+        "\n/*"+comment+"*/\n"+
+        "(function(){\n"+
         "/* jshint ignore:start */\n"+
-        "/*"+comment+"*/\n"+fn.toString()+"\n"+
+        fn.toString()+"\n"+
         "/* jshint ignore:end */\n"+
         "})();\n";
         return src;
