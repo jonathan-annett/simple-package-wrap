@@ -93,11 +93,14 @@ module.exports = function ()
                 listIndex=0,list;
 
             if (isList) {
-                listIndex =arguments[1];
-                list=arguments[2];
+                listIndex    = arguments[1];
+                if (typeof filename.index === 'number') {
+                    listIndex= filename.index;
+                }
+                list         = arguments[2];
                 moduleName   = filename.mod;
                 pkg_filename = filename.pkg;
-min_filename = filename.min;
+                min_filename = filename.min;
                 filename     = filename.js;
 
             } else {
@@ -161,6 +164,7 @@ min_filename = filename.min;
         return '(function($N){\n'+
 
             mods.map(function(el,listIndex) {
+                delete el.index;
                 return  isPreloaded(el.js) ? preloadedEmbed(el.js,el.mod,path.basename(el.file)) : installEmbed(el.js,listIndex,path.basename(el.file));
             }).join('\n') +
         '})([typeof process+typeof module+typeof require==="objectobjectfunction"?module.exports:window,'+
@@ -177,6 +181,7 @@ min_filename = filename.min;
         return '(function($N){\n'+
 
             mods.map(function(el,listIndex) {
+                delete el.index;
                 return  isPreloaded(el.js) ? preloadedEmbed(el.js,el.mod,path.basename(el.file)) : installNamedEmbed(el.js,el.mod,path.basename(el.file));
             }).join('\n') +
 
@@ -210,7 +215,8 @@ min_filename = filename.min;
                     var res = [];
                     x.forEach(function(el){
                         if (x.mod && x.js) {
-                           return res.push(x);
+                            x.index=0;
+                            return res.push(x);
                         }
                         var mods = mod_list(el);
                         if (mods.length>0) {
@@ -220,10 +226,13 @@ min_filename = filename.min;
                     return res;
                 }
 
-                if (x.mod && x.js) return [x];
+                if (x.mod && x.js) {
+                    x.index=0;
+                    return [x];
+                }
 
                 return Object.keys(x).map(function(nm){
-                      return {mod:nm, js : x[nm]};
+                      return {mod:nm, js : x[nm], index:0};
                 });
             default: return [];
         }
