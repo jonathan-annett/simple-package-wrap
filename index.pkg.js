@@ -60,9 +60,9 @@ function multiPackageTemplate2(){(function($N){$N["${acme}"]=(function acme_pack
 
             if (isList) {
                 moduleName   = filename.mod;
-                filename     = filename.js;
                 pkg_filename = filename.pkg;
                 min_filename = filename.min;
+                filename     = filename.js;
                 listIndex =arguments[1];
                 list=arguments[2];
             } else {
