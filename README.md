@@ -84,9 +84,11 @@ if however, you are testing your input source code in node.js you need to  `requ
 module combining
 ----
 
-for browser deployment, you often need multiple associated modules and always want them "together".for development reasons, it's best to keep them as sepearate source files, but for efficiency and debugging, having them combined can be useful.
+For browser deployment, you often need multiple associated modules and always want them "together".
 
-for this reason there are 2 additional variants of the build function:
+For development reasons, it's sometimes best to keep modules as sepearate source files, but for efficiency and debugging, having them combined can be useful. (or not!)
+
+For this reason there are 2 additional variants of the build function:
 
 buildMulti
 ---
