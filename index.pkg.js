@@ -10,20 +10,35 @@ var
     extract_fn     = function(fn){ fn = fn.toString(); return fn.substring(fn.indexOf('{')+1,fn.lastIndexOf('}')).trim()},
     minifyJS       = function minifyJS( js_src ) {
 
-       var result1 = UglifyJS.minify(js_src, {
-           parse: {},
-           compress: {},
-           mangle: false,
-           comments:false,
-           output: {
-               code: true
-           }
-       });
+       var
 
-       var result2 = babel.transform(js_src,{minified:true,comments:false});
+       result1,
+       result2;
+       try {
+           result1 = UglifyJS.minify(js_src, {
+               parse: {},
+               compress: {},
+               mangle: false,
+               comments:false,
+               output: {
+                   code: true
+               }
+           });
+       } catch (e) {
+            console.log(e.message);
+            console.log("uglify failed. trying babel")
+       }
 
+       try {
+           result2 = babel.transform(js_src,{minified:true,comments:false});
+       } catch (e) {
+            console.log(e.message);
+            console.log("babel failed. "+(result1 && result1.code? "will use uglify output" : "will use uncompressed output"))
+       }
 
-       if (!result1.code) return result2.code;
+       if (!result1 || !result1.code) return result2 ? result2.code :js_src;
+
+       if (!result2 || !result2.code) return result1.code;
 
        return  (result1.code.length < result2.code.length) ? result1.code : result2.code;
     };
@@ -74,7 +89,7 @@ var
             var pkg_filename;
             var min_filename;
 
-            var isList = typeof filename === 'object' && filename.mod && filename.js,
+            var isList = typeof filename === 'object' && typeof filename.mod==='string' && filename.js,
                 listIndex=0,list;
 
             if (isList) {
