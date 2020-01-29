@@ -38,7 +38,7 @@ then
 
 **in terminal**
 
-    $ node --require ./index.js
+    $ node --require simple-package-wrap
     Welcome to Node.js v12.14.1.
     Type ".help" for more information.
     > build("./sample.js","sample")
@@ -50,6 +50,7 @@ then
     undefined
 
 **creates files**
+
 
 
 sample.pkg.js
