@@ -126,6 +126,14 @@ module.exports = function ()
             }
             if (typeof js_source!=='function') {
                 js_source = fs.readFileSync(filename,"utf8").trim();
+            } else {
+                if (isPreloaded(js_source)) {
+                    js_source =
+                            '/*pre-packaged '+path.basename(filename)+' begin*/\n'+
+                            fs.readFileSync(filename,"utf8").trim();
+                            '\n/*pre-packaged '+path.basename(filename)+' end*/\n';
+
+                }
             }
 
             pkg_filename = pkg_filename || filename.replace(/\.js$/,'.pkg.js') ;
