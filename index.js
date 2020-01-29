@@ -93,12 +93,13 @@ module.exports = function ()
                 listIndex=0,list;
 
             if (isList) {
-                moduleName   = filename.mod;
-                pkg_filename = filename.pkg;
-                min_filename = filename.min;
-                filename     = filename.js;
                 listIndex =arguments[1];
                 list=arguments[2];
+                moduleName   = filename.mod;
+                pkg_filename = filename.pkg;
+min_filename = filename.min;
+                filename     = filename.js;
+
             } else {
                 moduleName  = typeof moduleName==='string' ? moduleName : def_mod_name(filename);
             }
