@@ -1,17 +1,16 @@
 module.exports = function ()
 {
-function packageTemplate(){(function($N){$N[0][$N[1]]=(function acme_package(){})(!$N[0].Document);})(typeof process+typeof module+typeof require==='objectobjectfunction'?[module,"exports"]:[window,"${acme}"]);}
-function multiPackageTemplate(){(function($N){$N[0][$N[1]]=(function acme_package(){})(!$N[0].Document);})([typeof process+typeof module+typeof require==='objectobjectfunction'?module.exports:window,"${acme}"]);}
-function multiPackageTemplate2(){(function($N){$N["${acme}"]=(function acme_package(){})(!$N.Document);})(typeof process+typeof module+typeof require==='objectobjectfunction'?module.exports:window);}
-
 
     var
-    path = require("path"),
-    fs =require("fs"),
-    UglifyJS     = require("uglify-js"),
-    babel = require("babel-core"),
-    minifyJS = function minifyJS( js_src ) {
-       var result1= UglifyJS.minify(js_src, {
+
+    path           = require("path"),
+    fs             = require("fs"),
+    UglifyJS       = require("uglify-js"),
+    babel          = require("babel-core"),
+    extract_fn     = function(fn){ fn = fn.toString(); return fn.substring(fn.indexOf('{')+1,fn.lastIndexOf('}')).trim()},
+    minifyJS       = function minifyJS( js_src ) {
+
+       var result1 = UglifyJS.minify(js_src, {
            parse: {},
            compress: {},
            mangle: false,
@@ -31,33 +30,52 @@ function multiPackageTemplate2(){(function($N){$N["${acme}"]=(function acme_pack
 
     function isPreloaded(fn) {
         switch (typeof fn) {
-            case 'string' : return false;
+            case 'string' :
+                fn = fn.trim();
+                return ! (fn.startsWith('function')&&fn.endsWith('}'));
+
             case 'object' : return true;
             case 'function':
-                if (fn.name!=='' || Object.keys(fn)>0|| fn.length>0) return true;
+                if (fn.name!=='' || Object.keys(fn).length>0|| fn.length>0) return true;
         }
         return false;
     }
 
-    function nodify(fn,comment){
-        return (function () {
-                    var fkmod = {exports:{}};
-                    (function (process,module,require) {
-                        //code
-                    })({env:{},cwd:function(){return"/"}},fkmod,function(){return {};});
-                    return fkmod.exports;
-                }).toString().split('//code').join("\n/*"+comment+"*/"+fn.toString()+"\n");
+    function installEmbed(fn,ix,comment){
+        var src = "$N[0][$N["+String(ix+1)+"]]=(function($N){\n"+
+            "/*"+comment+"*/\n"+(typeof fn==='function'?extract_fn(fn):fn)+"\n"+
+        "})(!$N[0].Document);\n";
+        return src;
     }
 
+    function installNamedEmbed(fn,name,comment){
+        var src = "$N['"+name+"']=(function($N){\n"+
+            "/*"+comment+"*/\n"+(typeof fn==='function'?extract_fn(fn):fn)+"\n"+
+        "})(!$N.Document);\n";
+        return src;
+    }
+
+    function preloadedEmbed(fn,comment){
+        var src = "(function(){\n"+
+        "/*"+comment+"*/\n"+fn.toString()+"\n"+
+        "})();\n";
+        return src;
+    }
+
+    function makePackage(name,fn,listIndex,comment){
+        var source = isPreloaded(fn) ? preloadedEmbed(fn,name,comment) : installEmbed(fn,listIndex,comment);
+        return "(function($N){\n"+
+        source+"\n"+
+        "})(typeof process+typeof module+typeof require==='objectobjectfunction'?[module,'exports']:[window,'"+name+"']);\n";
+    }
 
     function build (filename,moduleName) {
 
             var pkg_filename;
             var min_filename;
 
-
             var isList = typeof filename === 'object' && filename.mod && filename.js,
-                listIndex,list;
+                listIndex=0,list;
 
             if (isList) {
                 moduleName   = filename.mod;
@@ -78,34 +96,15 @@ function multiPackageTemplate2(){(function($N){$N["${acme}"]=(function acme_pack
             }
 
 
+            var js_source;
 
+            try {
+                js_source=require(filename);
+            } catch (e) {
 
-
-            var js_source, preloaded=false;
-
-            //todo: use vm with sandbox here.
-            js_source=require(filename);
-
+            }
             if (typeof js_source!=='function') {
                 js_source = fs.readFileSync(filename,"utf8").trim();
-                js_source = js_source.substr(0,js_source.lastIndexOf('}'));
-                if(!process.mainModule) {
-                    console.log("loaded module as string:",js_source.length,"chars");
-                }
-            } else {
-                preloaded=isPreloaded(js_source);
-                if ( preloaded ) {
-                    js_source = nodify(fs.readFileSync(filename,"utf8"),'injected:'+filename);
-
-                    if(!process.mainModule) {
-                        console.log("detected preloaded module, embeding raw source:",js_source.toString().length,"chars");
-                    }
-                } else {
-                    if(!process.mainModule) {
-                        console.log("detected exported function:",js_source.toString().length,"chars");
-                    }
-                }
-
             }
 
             pkg_filename = pkg_filename || filename.replace(/\.js$/,'.pkg.js') ;
@@ -113,21 +112,20 @@ function multiPackageTemplate2(){(function($N){$N["${acme}"]=(function acme_pack
 
             var result = {
                 js   : js_source,
-                name : moduleName,
+                mod  : moduleName,
                 file : filename,
-                preloaded : preloaded ? js_source : false,
                 pkg  : { file : pkg_filename},
                 min  : { file : min_filename},
             };
 
-            js_source = makePackage(moduleName,js_source);
+            js_source = makePackage(moduleName,js_source,listIndex,filename);
             fs.writeFileSync(pkg_filename ,js_source);
             if(!process.mainModule) {
                 console.log("wrote:",pkg_filename);
                 console.log("packaged source:",js_source.length,"chars. minifying...");
             }
 
-            if (preloaded && filename.endsWith(".min.js")) {
+            if (filename.endsWith(".min.js")) {
                 delete result.min;
             } else {
                 js_source = minifyJS(js_source);
@@ -142,75 +140,32 @@ function multiPackageTemplate2(){(function($N){$N["${acme}"]=(function acme_pack
 
         }
 
-    function makePackage(name,pkg_fn){
-
-        var pkg_bare = pkg_fn.toString().trimEnd();
-
-        var template = packageTemplate.toString().trimEnd();
-        template = template.substring(template.indexOf('{')+1,template.length-1).trim().split('function acme_package(){}');
-        template.push(template.pop().split('${acme}').join(name));
-
-        return template.join(('function($N){'+pkg_bare.substring(pkg_bare.indexOf('{')+1)));
-    }
-
     function makeMultiPackage(mods){
 
+        return '(function($N){\n'+
 
-        var template = multiPackageTemplate.toString().trimEnd();
-        template = template.substring(template.indexOf('{')+1,template.length-1).trim().split('$N[0][$N[1]]=(function acme_package(){})(!$N[0].Document);');
-        template.push(
+            mods.map(function(el,listIndex) {
+                return  isPreloaded(el.js) ? preloadedEmbed(el.js,el.mod,path.basename(el.file)) : installEmbed(el.js,listIndex,path.basename(el.file));
+            }).join('\n') +
+        '})([typeof process+typeof module+typeof require==="objectobjectfunction"?module.exports:window,'+
 
-            template.pop().split('"${acme}"').join(
+           mods.map(function(el){return JSON.stringify(el.mod)}).join(',')+
 
-                mods.map(
-
-                    function(el){return JSON.stringify(el.name);}
-
-                    ).join(",")
-
-            )
-        );
-
-
-        return template.join(mods.map(function(el,ix){
-
-            var pkg_bare = el.js.toString().trimEnd();
-            var skip = ix===0?'\n':'';
-            return skip+'/* '+el.name+' (source in '+path.basename(el.file) +') */\n'+
-            '$N[0][$N['+String(1+ix)+']]=(function($N){'+pkg_bare.substring(pkg_bare.indexOf('{')+1)+')(!$N[0].Document);\n';
-
-        }).join (''));
+        ']);';
 
     }
 
     function makeMultiPackage2(mods){
 
 
-        var template = multiPackageTemplate2.toString().trimEnd();
-        template = template.substring(template.indexOf('{')+1,template.length-1).trim().split('$N["${acme}"]=(function acme_package(){})(!$N.Document);');
-       /* template.push(
+        return '(function($N){\n'+
 
-            template.pop().split('"${acme}"').join(
+            mods.map(function(el,listIndex) {
+                return  isPreloaded(el.js) ? preloadedEmbed(el.js,el.mod,path.basename(el.file)) : installNamedEmbed(el.js,el.mod,path.basename(el.file));
+            }).join('\n') +
 
-                mods.map(
+        '})([typeof process+typeof module+typeof require==="objectobjectfunction"?module.exports:window]);';
 
-                    function(el){return JSON.stringify(el.name);}
-
-                    ).join(",")
-
-            )
-        );*/
-
-
-        return template.join(mods.map(function(el,ix){
-
-            var pkg_bare = el.js.toString().trimEnd();
-            var skip = ix===0?'\n':'';
-            return skip+'/* '+el.name+' (source in '+path.basename(el.file) +') */\n'+
-            '$N['+JSON.stringify(el.name)+']=(function($N){'+pkg_bare.substring(pkg_bare.indexOf('{')+1)+')(!$N.Document);\n';
-//            '$N[0][$N['+String(1+ix)+']]=(function($N){'+pkg_bare.substring(pkg_bare.indexOf('{')+1)+')(!!$N[0].id);\n';
-
-        }).join (''));
 
     }
 
@@ -260,6 +215,7 @@ function multiPackageTemplate2(){(function($N){$N["${acme}"]=(function acme_pack
     }
 
     function buildMulti(x,filename) {
+        if (!filename.endsWith(".js")) filename+=".js";
 
         var pkg_filename = filename.replace(/\.js$/,'.pkg.js') ;
         var min_filename = filename.replace(/\.js$/,'.min.js') ;
@@ -276,6 +232,7 @@ function multiPackageTemplate2(){(function($N){$N["${acme}"]=(function acme_pack
 
     function buildNamed(x,filename) {
 
+        if (!filename.endsWith(".js")) filename+=".js";
         var pkg_filename = filename.replace(/\.js$/,'.pkg.js') ;
         var min_filename = filename.replace(/\.js$/,'.min.js') ;
 
@@ -302,4 +259,8 @@ if(!process.mainModule) {
     global.build      = module.exports().build;
     global.buildMulti = module.exports().buildMulti;
     global.buildNamed = module.exports().buildNamed;
+} else {
+
+    module.exports().build ("./index.js","test");
+
 }
