@@ -99,7 +99,8 @@ module.exports = function ()
 
     function makePackage(name,fn,listIndex,comment){
         var source = isPreloaded(fn) ? preloadedEmbed(fn,listIndex,comment) : installEmbed(fn,listIndex,comment);
-        return { js : [ "(function($N){\n",
+        return { fn : fn,
+                 js : [ "(function($N){\n",
                    source,
                    "\n})(typeof process+typeof module+typeof require==='objectobjectfunction'?[module,'exports']:[window,'"+name+"']);\n"],
         };
@@ -203,9 +204,11 @@ module.exports = function ()
 
             mods.map(function(el,listIndex) {
                 delete el.index;
-                var js = el.pkg && el.pkg.js ? el.pkg.js[1] : false ;
+                var js = el.pkg && el.pkg.fn ? el.pkg.fn : false ;
                 if (!js) {
                     js = el.js;
+                }
+                if (js) {
                     var handler = (isPreloaded(el.js) ? preloadedEmbed : installEmbed);
                     js = handler(el.js,listIndex,path.basename(el.file));
                 }
@@ -219,6 +222,8 @@ module.exports = function ()
         ']);';
 
     }
+    makeMultiPackage.preloadedEmbed= preloadedEmbed;
+    makeMultiPackage.installEmbed= installEmbed;
 
     function makeNamedPackage(mods){
 
@@ -227,9 +232,11 @@ module.exports = function ()
 
             mods.map(function(el) {
                 delete el.index;
-                var js = el.pkg && el.pkg.js ? el.pkg.js[1] : false ;
+                var js = el.pkg && el.pkg.fn ? el.pkg.fn : false ;
                 if (!js) {
                     js = el.js;
+                }
+                if (js) {
                     var handler = (isPreloaded(js) ? preloadedNamedEmbed : installNamedEmbed);
                     js = handler (js,el.mod,path.basename(el.file))
                 }
@@ -241,6 +248,9 @@ module.exports = function ()
 
 
     }
+
+    makeNamedPackage.preloadedEmbed= preloadedNamedEmbed;
+    makeNamedPackage.installEmbed= installNamedEmbed;
 
     function nameify(inside,name) {
         if (name.match(/^[a-zA-Z_][a-zA-Z0-9_]*$/)) {
@@ -304,7 +314,7 @@ module.exports = function ()
 
     }
 
-    function buildArray(x,filename,extendAndCB,arrayFunc,saveLocally,saveZip) {
+    function buildArray(x,filename,extendAndCB,packageFunc,saveLocally,saveZip) {
 
             if (!filename.endsWith(".js")) filename+=".js";
             var pkg_filename  = filename.replace(/\.js$/,'.pkg.js') ;
@@ -372,7 +382,7 @@ module.exports = function ()
                 zip.file(path.basename(json_filename),'{}');
 
 
-                var multi_source = arrayFunc(built);
+                var multi_source = packageFunc(built);
                 fs.writeFileSync(pkg_filename,multi_source);
                 zip.file(zip_store_name(filename,pkg_filename),multi_source);
 

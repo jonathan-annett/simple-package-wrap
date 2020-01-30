@@ -98,7 +98,8 @@ if (!$N) throw new Error("you need node.js to use this file");
 
     function makePackage(name,fn,listIndex,comment){
         var source = isPreloaded(fn) ? preloadedEmbed(fn,listIndex,comment) : installEmbed(fn,listIndex,comment);
-        return { js : [ "(function($N){\n",
+        return { fn : fn,
+                 js : [ "(function($N){\n",
                    source,
                    "\n})(typeof process+typeof module+typeof require==='objectobjectfunction'?[module,'exports']:[window,'"+name+"']);\n"],
         };
@@ -202,9 +203,11 @@ if (!$N) throw new Error("you need node.js to use this file");
 
             mods.map(function(el,listIndex) {
                 delete el.index;
-                var js = el.pkg && el.pkg.js ? el.pkg.js[1] : false ;
+                var js = el.pkg && el.pkg.fn ? el.pkg.fn : false ;
                 if (!js) {
                     js = el.js;
+                }
+                if (js) {
                     var handler = (isPreloaded(el.js) ? preloadedEmbed : installEmbed);
                     js = handler(el.js,listIndex,path.basename(el.file));
                 }
@@ -218,6 +221,8 @@ if (!$N) throw new Error("you need node.js to use this file");
         ']);';
 
     }
+    makeMultiPackage.preloadedEmbed= preloadedEmbed;
+    makeMultiPackage.installEmbed= installEmbed;
 
     function makeNamedPackage(mods){
 
@@ -226,9 +231,11 @@ if (!$N) throw new Error("you need node.js to use this file");
 
             mods.map(function(el) {
                 delete el.index;
-                var js = el.pkg && el.pkg.js ? el.pkg.js[1] : false ;
+                var js = el.pkg && el.pkg.fn ? el.pkg.fn : false ;
                 if (!js) {
                     js = el.js;
+                }
+                if (js) {
                     var handler = (isPreloaded(js) ? preloadedNamedEmbed : installNamedEmbed);
                     js = handler (js,el.mod,path.basename(el.file))
                 }
@@ -240,6 +247,9 @@ if (!$N) throw new Error("you need node.js to use this file");
 
 
     }
+
+    makeNamedPackage.preloadedEmbed= preloadedNamedEmbed;
+    makeNamedPackage.installEmbed= installNamedEmbed;
 
     function nameify(inside,name) {
         if (name.match(/^[a-zA-Z_][a-zA-Z0-9_]*$/)) {
@@ -303,7 +313,7 @@ if (!$N) throw new Error("you need node.js to use this file");
 
     }
 
-    function buildArray(x,filename,extendAndCB,arrayFunc,saveLocally,saveZip) {
+    function buildArray(x,filename,extendAndCB,packageFunc,saveLocally,saveZip) {
 
             if (!filename.endsWith(".js")) filename+=".js";
             var pkg_filename  = filename.replace(/\.js$/,'.pkg.js') ;
@@ -371,7 +381,7 @@ if (!$N) throw new Error("you need node.js to use this file");
                 zip.file(path.basename(json_filename),'{}');
 
 
-                var multi_source = arrayFunc(built);
+                var multi_source = packageFunc(built);
                 fs.writeFileSync(pkg_filename,multi_source);
                 zip.file(zip_store_name(filename,pkg_filename),multi_source);
 
