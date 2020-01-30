@@ -473,7 +473,7 @@ if (!$N) throw new Error("you need node.js to use this file");
         buildNamed      : buildNamed,
         serveMulti      : serveMulti,
         serveNamed      : serveNamed
-    };
+        };
 })(!$N[0].Document);
 
 })(typeof process+typeof module+typeof require==='objectobjectfunction'?[module,'exports']:[window,'simplePackageWrap']);
