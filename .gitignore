@@ -1,3 +1,4 @@
 .zedstate
 node_modules/
 package-lock.json
+.git_hash

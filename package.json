@@ -15,7 +15,7 @@
   "devDependencies": {},
   "scripts": {
     "build": "node -e 'require(\"./index.js\")  ().build(\"./index.js\",\"simplePackageWrap\");'",
-    "test": "node -e 'require(\"./index.pkg.js\").build(\"./index.js\",\"simplePackageWrap\");'"
+    "test": "node -e 'require(\"./index.pkg.js\").buildNamed({simplePack:\"./index.js\"},\"simplePackageTest\",function(){console.log.bind(console);});'"
   },
   "keywords": [],
   "main": "index.pkg.js",

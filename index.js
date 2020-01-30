@@ -85,7 +85,7 @@ module.exports = function ()
     function installNamedEmbed(fn,name,comment){
         var src =
         "\n/*"+comment+"*/\n"+
-        "$N['"+name+"']=(function($N){\n"+
+        nameify('$N',name)+"=(function($N){\n"+
             (typeof fn==='function'?extract_fn(fn):fn)+"\n"+
         "})(!$N.Document);\n";
         return src;
@@ -93,15 +93,16 @@ module.exports = function ()
 
     function preloadedNamedEmbed(fn,name,comment){
         return "\n/*"+comment+"*/\n"+
-        "$N['"+name+"']="+preloadedExploder(fn);
+        nameify('$N',name)+"="+preloadedExploder(fn);
     }
 
 
     function makePackage(name,fn,listIndex,comment){
         var source = isPreloaded(fn) ? preloadedEmbed(fn,listIndex,comment) : installEmbed(fn,listIndex,comment);
-        return "(function($N){\n"+
-        source+"\n"+
-        "})(typeof process+typeof module+typeof require==='objectobjectfunction'?[module,'exports']:[window,'"+name+"']);\n";
+        return { js : [ "(function($N){\n",
+                   source,
+                   "\n})(typeof process+typeof module+typeof require==='objectobjectfunction'?[module,'exports']:[window,'"+name+"']);\n"],
+        };
     }
 
     function build (filename,moduleName) {
@@ -110,7 +111,9 @@ module.exports = function ()
             var min_filename;
 
             var isList = typeof filename === 'object' && typeof filename.mod==='string' && filename.js,
-                listIndex=0,list;
+                saveLocally=true,
+                listIndex=0,
+                list;
 
             if (isList) {
                 listIndex    = arguments[1];
@@ -121,7 +124,12 @@ module.exports = function ()
                 moduleName   = filename.mod;
                 pkg_filename = filename.pkg;
                 min_filename = filename.min;
+                if (typeof filename.saveLocally === 'boolean') {
+                    saveLocally = filename.saveLocally;
+
+                }
                 filename     = filename.js;
+
 
             } else {
                 moduleName  = typeof moduleName==='string' ? moduleName : def_mod_name(filename);
@@ -161,12 +169,14 @@ module.exports = function ()
                 js   : js_source,
                 mod  : moduleName,
                 file : filename,
-                pkg  : { file : pkg_filename},
-                min  : { file : min_filename},
+                min  : {file : min_filename},
             };
 
-            js_source = makePackage(moduleName,js_source,listIndex,filename);
-            fs.writeFileSync(pkg_filename ,js_source);
+            result.pkg=makePackage(moduleName,js_source,listIndex,filename);
+            result.pkg.file = pkg_filename;
+
+            js_source = result.pkg.js.join('');
+            if (saveLocally) fs.writeFileSync(pkg_filename ,js_source);
             if(!process.mainModule) {
                 console.log("wrote:",pkg_filename);
                 console.log("packaged source:",js_source.length,"chars. minifying...");
@@ -175,8 +185,8 @@ module.exports = function ()
             if (filename.endsWith(".min.js")) {
                 delete result.min;
             } else {
-                js_source = minifyJS(js_source);
-                fs.writeFileSync(min_filename,js_source);
+                result.min.js = js_source = minifyJS(js_source);
+                if (saveLocally) fs.writeFileSync(min_filename,js_source);
                 if(!process.mainModule) {
                     console.log("wrote:",min_filename);
                     console.log("final minifed source:",js_source.length,"chars");
@@ -193,8 +203,14 @@ module.exports = function ()
 
             mods.map(function(el,listIndex) {
                 delete el.index;
-                var handler = (isPreloaded(el.js) ? preloadedEmbed : installEmbed);
-                return handler(el.js,listIndex,path.basename(el.file));
+                var js = el.pkg && el.pkg.js ? el.pkg.js[1] : false ;
+                if (!js) {
+                    js = el.js;
+                    var handler = (isPreloaded(el.js) ? preloadedEmbed : installEmbed);
+                    js = handler(el.js,listIndex,path.basename(el.file));
+                }
+                delete el.js;
+                return  js;
             }).join('\n') +
         '})([typeof process+typeof module+typeof require==="objectobjectfunction"?module.exports:window,'+
 
@@ -211,8 +227,14 @@ module.exports = function ()
 
             mods.map(function(el) {
                 delete el.index;
-                var handler = (isPreloaded(el.js) ? preloadedNamedEmbed : installNamedEmbed);
-                return  handler (el.js,el.mod,path.basename(el.file));
+                var js = el.pkg && el.pkg.js ? el.pkg.js[1] : false ;
+                if (!js) {
+                    js = el.js;
+                    var handler = (isPreloaded(js) ? preloadedNamedEmbed : installNamedEmbed);
+                    js = handler (js,el.mod,path.basename(el.file))
+                }
+                delete el.js;
+                return  js;
             }).join('\n') +
 
         '})(typeof process+typeof module+typeof require==="objectobjectfunction"?module.exports:window);';
@@ -220,35 +242,41 @@ module.exports = function ()
 
     }
 
+    function nameify(inside,name) {
+        if (name.match(/^[a-zA-Z_][a-zA-Z0-9_]*$/)) {
+            return inside+'.'+name;
+        } else {
+            return inside+'["'+name+'"]'
+        }
+    }
+
     function def_mod_name(filename) {
         return require("path").basename(filename).split('.')[0].split('-').join('');
     }
 
-    function mod_list(x) {
-        /*
+    function zip_store_name(reference,fn,subdir) {
+        var dir = path.dirname(reference);
+        subdir = subdir ? subdir+"/" : "";
+        if (fn.startsWith(dir))  return subdir+fn.substr(dir.length+1);
+        if (fn.startsWith("./")) return subdir+fn.substr(2);
+        return subdir+fn;
+    }
 
-         modlist('somefile.js') ----> [ {js:'somefile.js', mod:'somefile'} ]
-         ['somefile1.js', 'somefile2.js' ] ----> [ {js:'somefile1.js', mod:'somefile1'},{js:'somefile2.js', mod:'somefile2'} ]
+    function mod_list(x,saveLocally) {
 
-         {
-            custom1     : 'somefile1.js',
-            otherThing : 'somefile2.js',
-
-         } ----> [ {js:'somefile1.js', mod:'custom1'},{js:'somefile2.js', mod:'otherThing'} ]
-
-        */
 
          switch(typeof x) {
-            case "string" : return [{mod:def_mod_name(x), js : x}];
+            case "string" : return [{mod:def_mod_name(x), js : x, index:0, saveLocally:saveLocally}];
             case "object" :
                 if (x.constructor===Array) {
                     var res = [];
                     x.forEach(function(el){
                         if (x.mod && x.js) {
                             x.index=0;
+                            x.saveLocally=saveLocally;
                             return res.push(x);
                         }
-                        var mods = mod_list(el);
+                        var mods = mod_list(el,saveLocally);
                         if (mods.length>0) {
                             res.push.apply(res,mods);
                         }
@@ -258,118 +286,149 @@ module.exports = function ()
 
                 if (x.mod && x.js) {
                     x.index=0;
+                    x.saveLocally=saveLocally;
                     return [x];
                 }
 
                 return Object.keys(x).map(function(nm){
-                      return {mod:nm, js : x[nm], index:0};
+                      return {
+                          mod:nm,
+                          js : x[nm],
+                          index:0,
+                          saveLocally:saveLocally
+                      };
+
                 });
             default: return [];
         }
 
     }
 
-    function buildMulti(x,filename) {
-        if (!filename.endsWith(".js")) filename+=".js";
+    function buildArray(x,filename,extendAndCB,arrayFunc,saveLocally) {
 
-        var pkg_filename = filename.replace(/\.js$/,'.pkg.js') ;
-        var min_filename = filename.replace(/\.js$/,'.min.js') ;
+            if (!filename.endsWith(".js")) filename+=".js";
+            var pkg_filename  = filename.replace(/\.js$/,'.pkg.js') ;
+            var min_filename  = filename.replace(/\.js$/,'.min.js') ;
+            var json_filename = filename.replace(/\.js$/,'.pkg.json') ;
+            var zip_filename  = filename.replace(/\.js$/,'.pkg.zip') ;
 
-        var list  = mod_list(x);
-        var built = list.map(build);
-        var multi_source = makeMultiPackage(built);
-        fs.writeFileSync(pkg_filename,multi_source);
+            var list  = mod_list(x,saveLocally);
+            var JSZip = require("jszip");
 
-        multi_source = minifyJS(multi_source);
-        fs.writeFileSync(min_filename,multi_source);
+
+            if (typeof extendAndCB==='function') {
+                fs.readFile(zip_filename, function(err, data) {
+                    if (err) return doBuild(list);
+                    new JSZip().loadAsync(data).then(function (zip) {
+                        zip.file(path.basename(json_filename))
+                        .async("nodebuffer")
+                        .then(function(json){
+                            // get previously built mods
+                            var info = JSON.parse(json);
+                            // remove any modules in the new list from the previous list
+                            // (we are updating them, so we can dimp the old version)
+
+                            //console.log({list,previous:info});
+
+                            list.forEach(function(el){
+                                if (info.dir[el.mod]) {
+                                    console.log("will replace",el.mod,"in",zip_filename);
+                                    delete info.dir[el.mod];
+                                } else {
+                                    console.log("will add",el.mod,"to",zip_filename);
+                                }
+                            });
+
+
+
+                            // now convert the index format back to an array in the "built" format
+                            var prevBuilt = Object.keys(info.dir).map(function(k){return info.dir[k]});
+
+
+                            //console.log({list,prevBuilt});
+
+
+                            // an if there are any modules there, pass them into the build function
+                            doBuild(list,prevBuilt.length===0?undefined:prevBuilt);
+                        }).catch(extendAndCB);
+                    });
+                });
+            } else {
+                return doBuild(list);
+            }
+
+
+            function doBuild(list,preBuilt) {
+
+                var built = list.map(build);
+
+                if (preBuilt && preBuilt.length>0) {
+                    // prepend the previously built modules to the list
+                    built = preBuilt.concat(built);
+                }
+
+
+                var zip = new JSZip();
+                zip.file(path.basename(json_filename),'{}');
+
+
+                var multi_source = arrayFunc(built);
+                fs.writeFileSync(pkg_filename,multi_source);
+                zip.file(zip_store_name(filename,pkg_filename),multi_source);
+
+                multi_source = minifyJS(multi_source);
+                fs.writeFileSync(min_filename,multi_source);
+                zip.file(zip_store_name(filename,min_filename),multi_source);
+
+                var json = {dir:{}};
+                built.forEach(function(el){
+                    console.log("stored",el.mod,"in",zip_filename);
+                    if (el.pkg && el.pkg.js) zip.file(zip_store_name(filename,el.pkg.file,"dependancies"),el.pkg.js.join(''));
+                    if (el.min && el.min.js) zip.file(zip_store_name(filename,el.min.file,"dependancies"),el.min.js);
+                    delete el.js;
+                    json.dir[el.mod]=JSON.parse(JSON.stringify(el));
+                });
+
+                json=JSON.stringify(json,undefined,4);
+
+                if (saveLocally) fs.writeFileSync(json_filename,json);
+
+                zip.file(path.basename(json_filename),json);
+
+               zip
+               .generateNodeStream({
+                   type:'nodebuffer',
+                   streamFiles:true,
+                    compression: "DEFLATE",
+                    compressionOptions: {
+                        level: 9
+                    }
+               })
+               .pipe(fs.createWriteStream(zip_filename))
+               .on('finish', function () {
+                   // JSZip generates a readable stream with a "end" event,
+                   // but is piped here in a writable stream which emits a "finish" event.
+                   //console.log((preBuilt ? "updated" : "saved"),zip_filename, "(with",json_filename,"inside)");
+
+                   if (extendAndCB) {
+                       extendAndCB(null,list,preBuilt,built);
+                   }
+               });
+
+            }
+
+        }
+
+    function buildMulti(x,filename,extendAndCB) {
+
+        return buildArray(x,filename,extendAndCB,makeMultiPackage,false);
+
 
     }
 
     function buildNamed(x,filename,extendAndCB) {
 
-        if (!filename.endsWith(".js")) filename+=".js";
-        var pkg_filename = filename.replace(/\.js$/,'.pkg.js') ;
-        var min_filename = filename.replace(/\.js$/,'.min.js') ;
-        var json_filename= filename.replace(/\.js$/,'.pkg.json') ;
-        var zip_filename= filename.replace(/\.js$/,'.pkg.zip') ;
-
-        var list  = mod_list(x);
-        var JSZip = require("jszip");
-
-
-        if (typeof extendAndCB==='function') {
-            fs.readFile(zip_filename, function(err, data) {
-                if (err) return doBuild();
-                new JSZip().loadAsync(data).then(function (zip) {
-                    zip.file(path.basename(json_filename)).then(function(json){
-                        // get previously built mods
-                        var info = JSON.parse(json);
-                        // remove any modules in the new list from the previous list
-                        // (we are updating them, so we can dimp the old version)
-                        list.forEach(function(mod){
-                            delete info.dir[mod];
-                        });
-                        // now convert the index format back to an array in the "built" format
-                        var prevBuilt = Object.keys(info.dir).map(function(mod){return info.dir[mod]});
-
-                        // an if there are any modules there, pass them into the build function
-                        doBuild(list,prevBuilt.length===0?undefined:prevBuilt);
-                    }).catch(extendAndCB);;
-                });
-            });
-        } else {
-            return doBuild(list);
-        }
-
-
-        function doBuild(list,preBuilt) {
-
-            var built = list.map(build);
-
-            if (preBuilt && preBuilt.length>0) {
-                // prepend the previously built modules to the list
-                built = preBuilt.concat(built);
-            }
-
-            var multi_source = makeNamedPackage(built);
-            fs.writeFileSync(pkg_filename,multi_source);
-
-            multi_source = minifyJS(multi_source);
-            fs.writeFileSync(min_filename,multi_source);
-
-            var json = {dir:{}};
-            built.forEach(function(el){
-                json.dir[el.mod]=JSON.parse(JSON.stringify(el));
-            });
-
-            json=JSON.stringify(json,undefined,4);
-            fs.writeFileSync(json_filename,json);
-
-            var zip = new JSZip();
-            zip.file(path.basename(json_filename),json);
-
-           zip
-           .generateNodeStream({
-               type:'nodebuffer',
-               streamFiles:true,
-                compression: "DEFLATE",
-                compressionOptions: {
-                    level: 9
-                }
-           })
-           .pipe(fs.createWriteStream(zip_filename))
-           .on('finish', function () {
-               // JSZip generates a readable stream with a "end" event,
-               // but is piped here in a writable stream which emits a "finish" event.
-               console.log((preBuilt ? "updated" : "saved"),zip_filename, "(with",json_filename,"inside)");
-
-               if (extendAndCB) {
-                   extendAndCB(null,list,prebuilt,built);
-               }
-           });
-
-        }
-
+        return buildArray(x,filename,extendAndCB,makeNamedPackage,false);
     }
 
 
@@ -386,7 +445,27 @@ if(!process.mainModule) {
     global.buildMulti = module.exports().buildMulti;
     global.buildNamed = module.exports().buildNamed;
 } else {
+    if (process.mainModule===module && process.argv.indexOf("--test")>0) {
 
-    module.exports().build ("./index.js","test");
+        var mod = module.exports();
+         require("fs").unlink("./buildNamedTest.pkg.zip",function(err){
+            if (!err) {
+                console.log("removed:","./buildNamedTest.pkg.zip");
+            }
+            mod.buildNamed({simplePack:"./index.js","sample":"./sample.js"},"buildNamedTest",function(err,list,preBuilt,built){
+                mod.buildNamed({"sample2":"./sample2.js"},"buildNamedTest",function(err,list,preBuilt,built){
+                    require("fs").unlink("./buildMultiTest.pkg.zip",function(err){
+                        if (!err) {
+                            console.log("removed:","./buildMultiTest.pkg.zip");
+                        }
+                        mod.buildMulti({simplePack:"./index.js","sample":"./sample.js"},"buildMultiTest",function(err,list,preBuilt,built){
+                            mod.buildMulti({"sample2":"./sample2.js"},"buildMultiTest",function(err,list,preBuilt,built){
 
+                            });
+                        });
+                    });
+                });
+            });
+        });
+    }
 }
