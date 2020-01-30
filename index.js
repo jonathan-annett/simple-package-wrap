@@ -313,7 +313,14 @@ module.exports = function ()
         zip.file(path.basename(json_filename),json);
 
        zip
-       .generateNodeStream({type:'nodebuffer',streamFiles:true})
+       .generateNodeStream({
+           type:'nodebuffer',
+           streamFiles:true,
+            compression: "DEFLATE",
+            compressionOptions: {
+                level: 9
+            }
+       })
        .pipe(fs.createWriteStream(zip_filename))
        .on('finish', function () {
            // JSZip generates a readable stream with a "end" event,
