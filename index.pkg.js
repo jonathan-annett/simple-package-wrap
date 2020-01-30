@@ -284,7 +284,7 @@ if (!$N) throw new Error("you need node.js to use this file");
 
     }
 
-    function buildNamed(x,filename) {
+    function buildNamed(x,filename,extendAndCB) {
 
         if (!filename.endsWith(".js")) filename+=".js";
         var pkg_filename = filename.replace(/\.js$/,'.pkg.js') ;
@@ -293,39 +293,76 @@ if (!$N) throw new Error("you need node.js to use this file");
         var zip_filename= filename.replace(/\.js$/,'.pkg.zip') ;
 
         var list  = mod_list(x);
-        var built = list.map(build);
-        var multi_source = makeNamedPackage(built);
-        fs.writeFileSync(pkg_filename,multi_source);
 
-        var json = {dir:{}, pkg:multi_source};
-        json.min = multi_source = minifyJS(multi_source);
-        fs.writeFileSync(min_filename,multi_source);
-        built.forEach(function(el){
-            json.dir[el.mod]=JSON.parse(JSON.stringify(el));
-        });
+        if (typeof extendAndCB==='function') {
+            fs.readFile(zip_filename, function(err, data) {
+                if (err) return doBuild();
+                JSZip.loadAsync(data).then(function (zip) {
+                    zip.file(path.basename(json_filename)).then(function(json){
+                        // get previously built mods
+                        var info = JSON.parse(json);
+                        // remove any modules in the new list from the previous list
+                        // (we are updating them, so we can dimp the old version)
+                        list.forEach(function(mod){
+                            delete info.dir[mod];
+                        });
+                        // now convert the index format back to an array in the "built" format
+                        var prevBuilt = Object.keys(info.dir).map(function(mod){return info.dir[mod]});
 
-        json=JSON.stringify(json,undefined,4);
-        fs.writeFileSync(json_filename,json);
+                        // an if there are any modules there, pass them into the build function
+                        doBuild(list,prevBuilt.length===0?undefined:prevBuilt);
+                    }).catch(extendAndCB);;
+                });
+            });
+        } else {
+            return doBuild();
+        }
 
-        var JSZip = require("jszip");
-        var zip = new JSZip();
-        zip.file(path.basename(json_filename),json);
 
-       zip
-       .generateNodeStream({
-           type:'nodebuffer',
-           streamFiles:true,
-            compression: "DEFLATE",
-            compressionOptions: {
-                level: 9
+        function doBuild(list,preBuilt) {
+
+            var built = list.map(build);
+
+            if (preBuilt && preBuilt.length>0) {
+                // prepend the previously built modules to the list
+                built = preBuilt.concat(built);
             }
-       })
-       .pipe(fs.createWriteStream(zip_filename))
-       .on('finish', function () {
-           // JSZip generates a readable stream with a "end" event,
-           // but is piped here in a writable stream which emits a "finish" event.
-           console.log(zip_filename,"saved (with",json_filename,"inside)");
-       });
+
+            var multi_source = makeNamedPackage(built);
+            fs.writeFileSync(pkg_filename,multi_source);
+
+            multi_source = minifyJS(multi_source);
+            fs.writeFileSync(min_filename,multi_source);
+
+            var json = {dir:{}};
+            built.forEach(function(el){
+                json.dir[el.mod]=JSON.parse(JSON.stringify(el));
+            });
+
+            json=JSON.stringify(json,undefined,4);
+            fs.writeFileSync(json_filename,json);
+
+            var JSZip = require("jszip");
+            var zip = new JSZip();
+            zip.file(path.basename(json_filename),json);
+
+           zip
+           .generateNodeStream({
+               type:'nodebuffer',
+               streamFiles:true,
+                compression: "DEFLATE",
+                compressionOptions: {
+                    level: 9
+                }
+           })
+           .pipe(fs.createWriteStream(zip_filename))
+           .on('finish', function () {
+               // JSZip generates a readable stream with a "end" event,
+               // but is piped here in a writable stream which emits a "finish" event.
+               console.log((preBuilt ? "updated" : "saved"),zip_filename, "(with",json_filename,"inside)");
+           });
+
+        }
 
     }
 
