@@ -3,7 +3,7 @@
 /*./index.js*/
 $N[0][$N[1]]=(function($N){
 if (!$N) throw new Error("you need node.js to use this file");
-    
+
     var
 
     path           = require("path"),
@@ -289,14 +289,36 @@ if (!$N) throw new Error("you need node.js to use this file");
         if (!filename.endsWith(".js")) filename+=".js";
         var pkg_filename = filename.replace(/\.js$/,'.pkg.js') ;
         var min_filename = filename.replace(/\.js$/,'.min.js') ;
+        var json_filename= filename.replace(/\.js$/,'.pkg.json') ;
+        var zip_filename= filename.replace(/\.js$/,'.pkg.zip') ;
 
         var list  = mod_list(x);
         var built = list.map(build);
         var multi_source = makeNamedPackage(built);
         fs.writeFileSync(pkg_filename,multi_source);
 
-        multi_source = minifyJS(multi_source);
+        var json = {dir:{}, pkg:multi_source};
+        json.min = multi_source = minifyJS(multi_source);
         fs.writeFileSync(min_filename,multi_source);
+        built.forEach(function(el){
+            json.dir[el.mod]=JSON.parse(JSON.stringify(el));
+        });
+
+        json=JSON.stringify(json,undefined,4);
+        fs.writeFileSync(json_filename,json);
+
+        var JSZip = require("jszip");
+        var zip = new JSZip();
+        zip.file(path.basename(json_filename),json);
+
+       zip
+       .generateNodeStream({type:'nodebuffer',streamFiles:true})
+       .pipe(fs.createWriteStream(zip_filename))
+       .on('finish', function () {
+           // JSZip generates a readable stream with a "end" event,
+           // but is piped here in a writable stream which emits a "finish" event.
+           console.log(zip_filename,"saved (with",json_filename,"inside)");
+       });
 
     }
 
