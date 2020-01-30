@@ -317,10 +317,10 @@ module.exports = function ()
     function buildArray(x,filename,extendAndCB,packageFunc,saveLocally,saveZip) {
 
             if (!filename.endsWith(".js")) filename+=".js";
-            var pkg_filename  = filename.replace(/\.js$/,'.pkg.js') ;
-            var min_filename  = filename.replace(/\.js$/,'.min.js') ;
-            var json_filename = filename.replace(/\.js$/,'.pkg.json') ;
-            var zip_filename  = filename.replace(/\.js$/,'.pkg.zip') ;
+            var pkg_filename  = filename.replace(/(\.js)$/,'.pkg.js') ;
+            var min_filename  = filename.replace(/(\.js)$/,'.min.js') ;
+            var json_filename = filename.replace(/(\.js)$/,'.pkg.json') ;
+            var zip_filename  = filename.replace(/(\.js)$/,'.pkg.zip') ;
 
             var list  = mod_list(x,saveLocally);
             var JSZip = require("jszip");
