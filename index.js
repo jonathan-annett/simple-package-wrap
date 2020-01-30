@@ -316,7 +316,7 @@ module.exports = function ()
                 });
             });
         } else {
-            return doBuild();
+            return doBuild(list);
         }
 
 
@@ -361,6 +361,10 @@ module.exports = function ()
                // JSZip generates a readable stream with a "end" event,
                // but is piped here in a writable stream which emits a "finish" event.
                console.log((preBuilt ? "updated" : "saved"),zip_filename, "(with",json_filename,"inside)");
+
+               if (extendAndCB) {
+                   extendAndCB(null,list,prebuilt,built);
+               }
            });
 
         }
