@@ -304,7 +304,7 @@ module.exports = function ()
 
     }
 
-    function buildArray(x,filename,extendAndCB,arrayFunc,saveLocally) {
+    function buildArray(x,filename,extendAndCB,arrayFunc,saveLocally,saveZip) {
 
             if (!filename.endsWith(".js")) filename+=".js";
             var pkg_filename  = filename.replace(/\.js$/,'.pkg.js') ;
@@ -395,25 +395,31 @@ module.exports = function ()
 
                 zip.file(path.basename(json_filename),json);
 
-               zip
-               .generateNodeStream({
+               var saver = zip[saveZip?"generateNodeStream":"generateAsync"]({
                    type:'nodebuffer',
                    streamFiles:true,
                     compression: "DEFLATE",
                     compressionOptions: {
                         level: 9
                     }
-               })
-               .pipe(fs.createWriteStream(zip_filename))
-               .on('finish', function () {
-                   // JSZip generates a readable stream with a "end" event,
-                   // but is piped here in a writable stream which emits a "finish" event.
-                   //console.log((preBuilt ? "updated" : "saved"),zip_filename, "(with",json_filename,"inside)");
-
-                   if (extendAndCB) {
-                       extendAndCB(null,list,preBuilt,built);
-                   }
                });
+
+                if (saveZip) {
+                   saver.pipe(fs.createWriteStream(zip_filename)).on('finish', onDone);
+                } else {
+                    saver.then (onDone);
+                }
+
+                function onDone(zipContent) {
+                     // JSZip generates a readable stream with a "end" event,
+                     // but is piped here in a writable stream which emits a "finish" event.
+                     //console.log((preBuilt ? "updated" : "saved"),zip_filename, "(with",json_filename,"inside)");
+                     console.log({zipContent});
+
+                     if (extendAndCB) {
+                         extendAndCB(null,list,preBuilt,built,zip,zipContent);
+                     }
+                 }
 
             }
 
@@ -421,33 +427,70 @@ module.exports = function ()
 
     function buildMulti(x,filename,extendAndCB) {
 
-        return buildArray(x,filename,extendAndCB,makeMultiPackage,false);
+        return buildArray(x,filename,extendAndCB,makeMultiPackage,false,true);
 
 
     }
 
     function buildNamed(x,filename,extendAndCB) {
 
-        return buildArray(x,filename,extendAndCB,makeNamedPackage,false);
+        return buildArray(x,filename,extendAndCB,makeNamedPackage,false,true);
+    }
+
+    function serveMulti(x,filename,url,express,app,cb) {
+
+        return buildArray(x,filename,function(err,list,preBuilt,built,zip,zipContent){
+
+            if (!err) {
+                if(app && express && express.static)app.use(url,express.static(filename));
+                cb(null,list,preBuilt,built,zip,zipContent);
+            } else {
+                cb(err);
+            }
+
+        },makeMultiPackage,false,true);
+
+    }
+
+    function serveNamed(x,filename,url,express,app,cb) {
+
+        return buildArray(x,filename,function(err,list,preBuilt,built,zip,zipContent){
+
+            if (!err) {
+                if(app && express && express.static)app.use(url,express.static(filename));
+                cb(null,list,preBuilt,built,zip,zipContent);
+            } else {
+                cb(err);
+            }
+
+        },makeNamedPackage,false,true);
+
     }
 
 
     return {
         build           : build,
         buildMulti      : buildMulti,
-        buildNamed      : buildNamed
+        buildNamed      : buildNamed,
+        serveMulti      : serveMulti,
+        serveNamed      : serveNamed
     };
 };
 
+var mod;
 
 if(!process.mainModule) {
-    global.build      = module.exports().build;
-    global.buildMulti = module.exports().buildMulti;
-    global.buildNamed = module.exports().buildNamed;
+    mod = module.exports();
+    global.build      = mod.build;
+    global.buildMulti = mod.buildMulti;
+    global.buildNamed = mod.buildNamed;
+    global.serveNamed = mod.serveNamed;
+    global.serveMulti = mod.serveMulti;
+
 } else {
     if (process.mainModule===module && process.argv.indexOf("--test")>0) {
 
-        var mod = module.exports();
+        mod = module.exports();
          require("fs").unlink("./buildNamedTest.pkg.zip",function(err){
             if (!err) {
                 console.log("removed:","./buildNamedTest.pkg.zip");

@@ -303,7 +303,7 @@ if (!$N) throw new Error("you need node.js to use this file");
 
     }
 
-    function buildArray(x,filename,extendAndCB,arrayFunc,saveLocally) {
+    function buildArray(x,filename,extendAndCB,arrayFunc,saveLocally,saveZip) {
 
             if (!filename.endsWith(".js")) filename+=".js";
             var pkg_filename  = filename.replace(/\.js$/,'.pkg.js') ;
@@ -394,25 +394,31 @@ if (!$N) throw new Error("you need node.js to use this file");
 
                 zip.file(path.basename(json_filename),json);
 
-               zip
-               .generateNodeStream({
+               var saver = zip[saveZip?"generateNodeStream":"generateAsync"]({
                    type:'nodebuffer',
                    streamFiles:true,
                     compression: "DEFLATE",
                     compressionOptions: {
                         level: 9
                     }
-               })
-               .pipe(fs.createWriteStream(zip_filename))
-               .on('finish', function () {
-                   // JSZip generates a readable stream with a "end" event,
-                   // but is piped here in a writable stream which emits a "finish" event.
-                   //console.log((preBuilt ? "updated" : "saved"),zip_filename, "(with",json_filename,"inside)");
-
-                   if (extendAndCB) {
-                       extendAndCB(null,list,preBuilt,built);
-                   }
                });
+
+                if (saveZip) {
+                   saver.pipe(fs.createWriteStream(zip_filename)).on('finish', onDone);
+                } else {
+                    saver.then (onDone);
+                }
+
+                function onDone(zipContent) {
+                     // JSZip generates a readable stream with a "end" event,
+                     // but is piped here in a writable stream which emits a "finish" event.
+                     //console.log((preBuilt ? "updated" : "saved"),zip_filename, "(with",json_filename,"inside)");
+                     console.log({zipContent});
+
+                     if (extendAndCB) {
+                         extendAndCB(null,list,preBuilt,built,zip,zipContent);
+                     }
+                 }
 
             }
 
@@ -420,21 +426,53 @@ if (!$N) throw new Error("you need node.js to use this file");
 
     function buildMulti(x,filename,extendAndCB) {
 
-        return buildArray(x,filename,extendAndCB,makeMultiPackage,false);
+        return buildArray(x,filename,extendAndCB,makeMultiPackage,false,true);
 
 
     }
 
     function buildNamed(x,filename,extendAndCB) {
 
-        return buildArray(x,filename,extendAndCB,makeNamedPackage,false);
+        return buildArray(x,filename,extendAndCB,makeNamedPackage,false,true);
+    }
+
+    function serveMulti(x,filename,url,express,app,cb) {
+
+        return buildArray(x,filename,function(err,list,preBuilt,built,zip,zipContent){
+
+            if (!err) {
+                if(app && express && express.static)app.use(url,express.static(filename));
+                cb(null,list,preBuilt,built,zip,zipContent);
+            } else {
+                cb(err);
+            }
+
+        },makeMultiPackage,false,true);
+
+    }
+
+    function serveNamed(x,filename,url,express,app,cb) {
+
+        return buildArray(x,filename,function(err,list,preBuilt,built,zip,zipContent){
+
+            if (!err) {
+                if(app && express && express.static)app.use(url,express.static(filename));
+                cb(null,list,preBuilt,built,zip,zipContent);
+            } else {
+                cb(err);
+            }
+
+        },makeNamedPackage,false,true);
+
     }
 
 
     return {
         build           : build,
         buildMulti      : buildMulti,
-        buildNamed      : buildNamed
+        buildNamed      : buildNamed,
+        serveMulti      : serveMulti,
+        serveNamed      : serveNamed
     };
 })(!$N[0].Document);
 
