@@ -294,6 +294,8 @@ module.exports = function ()
         var zip_filename= filename.replace(/\.js$/,'.pkg.zip') ;
 
         var list  = mod_list(x);
+        var JSZip = require("jszip");
+            
 
         if (typeof extendAndCB==='function') {
             fs.readFile(zip_filename, function(err, data) {
@@ -343,7 +345,6 @@ module.exports = function ()
             json=JSON.stringify(json,undefined,4);
             fs.writeFileSync(json_filename,json);
 
-            var JSZip = require("jszip");
             var zip = new JSZip();
             zip.file(path.basename(json_filename),json);
 
