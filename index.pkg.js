@@ -294,12 +294,12 @@ if (!$N) throw new Error("you need node.js to use this file");
 
         var list  = mod_list(x);
         var JSZip = require("jszip");
-            
+
 
         if (typeof extendAndCB==='function') {
             fs.readFile(zip_filename, function(err, data) {
                 if (err) return doBuild();
-                JSZip.loadAsync(data).then(function (zip) {
+                new JSZip().loadAsync(data).then(function (zip) {
                     zip.file(path.basename(json_filename)).then(function(json){
                         // get previously built mods
                         var info = JSON.parse(json);
