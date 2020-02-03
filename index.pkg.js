@@ -638,7 +638,7 @@ if (!$N) throw new Error("you need node.js to use this file");
                 }
 
                 var
-                nodeBuf  = require("fs").readFileSync("./test.jszip"),
+                nodeBuf  = require("fs").readFileSync("${filename}"),
                 arrayBuf = toArrayBuffer(nodeBuf)
 
                 bootload(arrayBuf,global,function (err,zip){
@@ -649,7 +649,7 @@ if (!$N) throw new Error("you need node.js to use this file");
 
             return {
                 script     : loadJSZip_src+browserSuffix,
-                nodeTester : loadJSZip_src+extract_fn(nodeTester),
+                nodeTester : loadJSZip_src+(extract_fn(nodeTester).split("${filename}").join(filename.replace(/\.zip$/,'.jszip'))),
                 buffer : Buffer.concat([Buffer.from(src_fixed_temp),JSZipBuffer,ZipFileBuffer])
             };
 
@@ -866,7 +866,7 @@ if (!$N) throw new Error("you need node.js to use this file");
 
             return {
                 script     : loadJSZip_src+browserSuffix,
-                nodeTester : loadJSZip_src+extract_fn(nodeTester),
+                nodeTester : loadJSZip_src+(extract_fn(nodeTester).split("${filename}").join(filename.replace(/\.zip$/,'.jszip'))),
                 buffer : Buffer.concat([Buffer.from(src_fixed_temp),PakoBuffer,JSZipBuffer,ZipFileBuffer])
             };
 
