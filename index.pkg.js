@@ -703,6 +703,8 @@ if (!$N) throw new Error("you need node.js to use this file");
         pako_loader_fn = filename.replace(/\.zip$/,'.pako-loader.js'),
         pako_tester_fn = filename.replace(/\.zip$/,'.pako-tester.js');
 
+        console.log({pako_tester_fn,pako_loader_fn});
+
         fs.writeFileSync(jszip_filename,loader.buffer);
         fs.writeFileSync(pako_loader_fn,loader.script);
         fs.writeFileSync(pako_tester_fn,loader.nodeTester);
@@ -813,7 +815,7 @@ if (!$N) throw new Error("you need node.js to use this file");
                 return src;
             }
 
-            console.log({pako_loader_fn});
+
 
             var
             loadJSZip_src =
