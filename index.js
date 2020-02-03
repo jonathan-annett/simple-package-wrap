@@ -490,11 +490,12 @@ module.exports = function ()
         JSZipPackageFile=require.resolve("jszip"),
         JSZipPackagePath=path.dirname(JSZipPackageFile),
         JSZipMinifiedPath=jsZipSrc || path.join(JSZipPackagePath,"..","dist","jszip.min.js"),
-        loader = JSZipBootloader(fs.readFileSync(JSZipMinifiedPath),fs.readFileSync(filename)),
 
         jszip_filename = filename.replace(/\.zip$/,'.jszip'),
         zip_loader_fn = filename.replace(/\.zip$/,'.zip-loader.js'),
-        zip_tester_fn = filename.replace(/\.zip$/,'.zip-tester.js');
+        zip_tester_fn = filename.replace(/\.zip$/,'.zip-tester.js'),
+
+        loader = JSZipBootloader(fs.readFileSync(JSZipMinifiedPath),fs.readFileSync(filename)),
 
         fs.writeFileSync(jszip_filename,loader.buffer);
         fs.writeFileSync(zip_loader_fn,loader.script);
@@ -694,17 +695,15 @@ module.exports = function ()
         PakoPackagePath=path.dirname(PakoPackageFile),
         PakoMinifiedPath=path.join(PakoPackagePath,"dist","pako_inflate.min.js"),
 
+        jszip_filename = filename.replace(/\.zip$/,'.jszip'),
+        pako_loader_fn = filename.replace(/\.zip$/,'.pako-loader.js'),
+        pako_tester_fn = filename.replace(/\.zip$/,'.pako-tester.js'),
 
         loader = JSZipBootloader(
             fs.readFileSync(PakoMinifiedPath),
             zlib.deflateSync(fs.readFileSync(JSZipMinifiedPath)),
             fs.readFileSync(filename)),
 
-        jszip_filename = filename.replace(/\.zip$/,'.jszip'),
-        pako_loader_fn = filename.replace(/\.zip$/,'.pako-loader.js'),
-        pako_tester_fn = filename.replace(/\.zip$/,'.pako-tester.js');
-
-        console.log({pako_tester_fn,pako_loader_fn});
 
         fs.writeFileSync(jszip_filename,loader.buffer);
         fs.writeFileSync(pako_loader_fn,loader.script);
