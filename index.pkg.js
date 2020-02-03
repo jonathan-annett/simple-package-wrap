@@ -813,6 +813,8 @@ if (!$N) throw new Error("you need node.js to use this file");
                 return src;
             }
 
+            console.log({pako_loader_fn});
+
             var
             loadJSZip_src =
                 minifyJS(bootload.toString())+"\n"+

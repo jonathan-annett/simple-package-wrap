@@ -814,6 +814,8 @@ module.exports = function ()
                 return src;
             }
 
+            console.log({pako_loader_fn});
+
             var
             loadJSZip_src =
                 minifyJS(bootload.toString())+"\n"+
