@@ -489,10 +489,16 @@ if (!$N) throw new Error("you need node.js to use this file");
         JSZipPackageFile=require.resolve("jszip"),
         JSZipPackagePath=path.dirname(JSZipPackageFile),
         JSZipMinifiedPath=jsZipSrc || path.join(JSZipPackagePath,"..","dist","jszip.min.js"),
-        loader = JSZipBootloader(fs.readFileSync(JSZipMinifiedPath),fs.readFileSync(filename));
-        fs.writeFileSync(filename.replace(/\.zip$/,'.jszip'),loader.buffer);
-        fs.writeFileSync(filename.replace(/\.zip$/,'.zip-loader.js'),loader.script);
-        fs.writeFileSync(filename.replace(/\.zip$/,'.zip-tester.js'),loader.nodeTester);
+        loader = JSZipBootloader(fs.readFileSync(JSZipMinifiedPath),fs.readFileSync(filename)),
+
+        jszip_filename = filename.replace(/\.zip$/,'.jszip'),
+        zip_loader_fn = filename.replace(/\.zip$/,'.zip-loader.js'),
+        zip_tester_fn = filename.replace(/\.zip$/,'.zip-tester.js');
+
+        fs.writeFileSync(jszip_filename,loader.buffer);
+        fs.writeFileSync(zip_loader_fn,loader.script);
+        fs.writeFileSync(zip_tester_fn,loader.nodeTester);
+
 
         function JSZipBootloader(JSZipBuffer,ZipFileBuffer) {
 
@@ -599,8 +605,8 @@ if (!$N) throw new Error("you need node.js to use this file");
                 minifyJS(bootload.toString())+"\n"+
                 minifyJS(loadJSZip.toString())+"\n",
             browserSuffix=
-                "loadJSZip('/"+path.basename(filename).replace(/\.zip$/,'.zip-loader.js')+"',"+
-                "function(err,zip){if(!err)window.dispatchEvent(new CustomEvent('"+eventName+"',{detail:{zip:zip}});});\n",
+                "loadJSZip('"+path.basename(jszip_filename)+"',"+
+                "function(err,zip){if(!err)window.dispatchEvent(new CustomEvent('"+eventName+"',{detail:{zip:zip}}));});\n",
             src_fixed_temp,src_fixed,
             template  = loader.toString(),
             setVars=function() {
@@ -649,7 +655,7 @@ if (!$N) throw new Error("you need node.js to use this file");
 
             return {
                 script     : loadJSZip_src+browserSuffix,
-                nodeTester : loadJSZip_src+(extract_fn(nodeTester).split("${filename}").join(filename.replace(/\.zip$/,'.jszip'))),
+                nodeTester : loadJSZip_src+(extract_fn(nodeTester).split("${filename}").join(jszip_filename)),
                 buffer : Buffer.concat([Buffer.from(src_fixed_temp),JSZipBuffer,ZipFileBuffer])
             };
 
@@ -691,11 +697,15 @@ if (!$N) throw new Error("you need node.js to use this file");
         loader = JSZipBootloader(
             fs.readFileSync(PakoMinifiedPath),
             zlib.deflateSync(fs.readFileSync(JSZipMinifiedPath)),
-            fs.readFileSync(filename));
+            fs.readFileSync(filename)),
 
-        fs.writeFileSync(filename.replace(/\.zip$/,'.jszip'),loader.buffer);
-        fs.writeFileSync(filename.replace(/\.zip$/,'.pako-loader.js'),loader.script);
-        fs.writeFileSync(filename.replace(/\.zip$/,'.pako-tester.js'),loader.nodeTester);
+        jszip_filename = filename.replace(/\.zip$/,'.jszip'),
+        pako_loader_fn = filename.replace(/\.zip$/,'.pako-loader.js'),
+        pako_tester_fn = filename.replace(/\.zip$/,'.pako-tester.js');
+
+        fs.writeFileSync(jszip_filename,loader.buffer);
+        fs.writeFileSync(pako_loader_fn,loader.script);
+        fs.writeFileSync(pako_tester_fn,loader.nodeTester);
 
         function JSZipBootloader(PakoBuffer,JSZipBuffer,ZipFileBuffer) {
 
@@ -808,8 +818,8 @@ if (!$N) throw new Error("you need node.js to use this file");
                 minifyJS(bootload.toString())+"\n"+
                 minifyJS(loadJSZip.toString())+"\n",
             browserSuffix=
-                "loadJSZip('/"+path.basename(filename).replace(/\.zip$/,'.zip-loader.js')+"',"+
-                "function(err,zip){if(!err)window.dispatchEvent(new CustomEvent('"+eventName+"',{detail:{zip:zip}});});\n",
+                "loadJSZip('"+path.basename(pako_loader_fn)+"',"+
+                "function(err,zip){if(!err)window.dispatchEvent(new CustomEvent('"+eventName+"',{detail:{zip:zip}});}));\n",
             src_fixed_temp,src_fixed,
             template  = loader.toString(),
             setVars=function() {
@@ -866,7 +876,7 @@ if (!$N) throw new Error("you need node.js to use this file");
 
             return {
                 script     : loadJSZip_src+browserSuffix,
-                nodeTester : loadJSZip_src+(extract_fn(nodeTester).split("${filename}").join(filename.replace(/\.zip$/,'.jszip'))),
+                nodeTester : loadJSZip_src+(extract_fn(nodeTester).split("${filename}").join(jszip_filename)),
                 buffer : Buffer.concat([Buffer.from(src_fixed_temp),PakoBuffer,JSZipBuffer,ZipFileBuffer])
             };
 
