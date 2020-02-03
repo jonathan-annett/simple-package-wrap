@@ -476,7 +476,7 @@ module.exports = function ()
 
     }
 
-    function zipLoaderFunc(filename) {
+    function createZipLoader(filename,eventName) {
 
         var
         fs  =require("fs"),
@@ -589,7 +589,11 @@ module.exports = function ()
             }
 
             var
-            loadJSZip_src = minifyJS(bootload.toString())+"\n"+minifyJS(loadJSZip.toString())+"\n",
+            loadJSZip_src =
+                minifyJS(bootload.toString())+"\n"+
+                minifyJS(loadJSZip.toString())+"\n"+
+                "loadJSZip('/"+path.basename(filename).replace(/\.zip$/,'.zip-loader.js')+"'"+
+                ",function(){window.dispatchEvent(new CustomEvent('"+eventName+"');});\n",
             src_fixed_temp,src_fixed,
             template  = loader.toString(),
             setVars=function() {
@@ -624,13 +628,13 @@ module.exports = function ()
     }
 
     return {
-        build           : build,
-        buildMulti      : buildMulti,
-        buildNamed      : buildNamed,
-        serveMulti      : serveMulti,
-        serveNamed      : serveNamed,
-        minifyJS        : minifyJS,
-        zipLoaderFunc   : zipLoaderFunc
+        build            : build,
+        buildMulti       : buildMulti,
+        buildNamed       : buildNamed,
+        serveMulti       : serveMulti,
+        serveNamed       : serveNamed,
+        minifyJS         : minifyJS,
+        createZipLoader : createZipLoader
     };
 };
 
@@ -647,7 +651,7 @@ if(!process.mainModule) {
     global.buildNamed     = mod.buildNamed;
     global.serveNamed     = mod.serveNamed;
     global.serveMulti     = mod.serveMulti;
-    global.zipLoaderFunc  = mod.zipLoaderFunc;
+    global.createZipLoader  = mod.createZipLoader;
 
 } else {
 
@@ -678,7 +682,7 @@ if(!process.mainModule) {
     if (process.mainModule===module && process.argv.indexOf("--ziptest")>0) {
 
         mod = module.exports();
-        mod.zipLoaderFunc("./test.zip");
+        mod.createZipLoader("./test.zip","zipLoaded");
 
     }
 
