@@ -475,7 +475,7 @@ if (!$N) throw new Error("you need node.js to use this file");
 
     }
 
-    function zipLoaderFunc(filename) {
+    function createZipLoader(filename,eventName) {
 
         var
         fs  =require("fs"),
@@ -588,7 +588,11 @@ if (!$N) throw new Error("you need node.js to use this file");
             }
 
             var
-            loadJSZip_src = minifyJS(bootload.toString())+"\n"+minifyJS(loadJSZip.toString())+"\n",
+            loadJSZip_src =
+                minifyJS(bootload.toString())+"\n"+
+                minifyJS(loadJSZip.toString())+"\n"+
+                "loadJSZip('/"+path.basename(filename).replace(/\.zip$/,'.zip-loader.js')+"'"+
+                ",function(){window.dispatchEvent(new CustomEvent('"+eventName+"');});\n",
             src_fixed_temp,src_fixed,
             template  = loader.toString(),
             setVars=function() {
@@ -623,13 +627,13 @@ if (!$N) throw new Error("you need node.js to use this file");
     }
 
     return {
-        build           : build,
-        buildMulti      : buildMulti,
-        buildNamed      : buildNamed,
-        serveMulti      : serveMulti,
-        serveNamed      : serveNamed,
-        minifyJS        : minifyJS,
-        zipLoaderFunc   : zipLoaderFunc
+        build            : build,
+        buildMulti       : buildMulti,
+        buildNamed       : buildNamed,
+        serveMulti       : serveMulti,
+        serveNamed       : serveNamed,
+        minifyJS         : minifyJS,
+        createZipLoader : createZipLoader
     };
 })(!$N[0].Document);
 
