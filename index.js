@@ -495,7 +495,7 @@ module.exports = function ()
         zip_loader_fn = filename.replace(/\.zip$/,'.zip-loader.js'),
         zip_tester_fn = filename.replace(/\.zip$/,'.zip-tester.js'),
 
-        loader = JSZipBootloader(fs.readFileSync(JSZipMinifiedPath),fs.readFileSync(filename)),
+        loader = JSZipBootloader(fs.readFileSync(JSZipMinifiedPath),fs.readFileSync(filename));
 
         fs.writeFileSync(jszip_filename,loader.buffer);
         fs.writeFileSync(zip_loader_fn,loader.script);
@@ -702,7 +702,7 @@ module.exports = function ()
         loader = JSZipBootloader(
             fs.readFileSync(PakoMinifiedPath),
             zlib.deflateSync(fs.readFileSync(JSZipMinifiedPath)),
-            fs.readFileSync(filename)),
+            fs.readFileSync(filename));
 
 
         fs.writeFileSync(jszip_filename,loader.buffer);
