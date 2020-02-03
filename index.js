@@ -11,7 +11,7 @@ module.exports = function ()
     fs             = require("fs"),
     UglifyJS       = require("uglify-js"),
     babel          = require("babel-core"),
-    extract_fn     = function(fn){ fn = fn.toString(); return fn.substring(fn.indexOf('{')+1,fn.lastIndexOf('}')).trim()},
+    extract_fn     = function(fn){ fn = fn.toString(); return fn.substring(fn.indexOf('{')+1,fn.lastIndexOf('}')).trim();},
     minifyJS       = function minifyJS( js_src ) {
 
        var
@@ -30,14 +30,14 @@ module.exports = function ()
            });
        } catch (e) {
             console.log(e.message);
-            console.log("uglify failed. trying babel")
+            console.log("uglify failed. trying babel");
        }
 
        try {
            result2 = babel.transform(js_src,{minified:true,comments:false});
        } catch (e) {
             console.log(e.message);
-            console.log("babel failed. "+(result1 && result1.code? "will use uglify output" : "will use uncompressed output"))
+            console.log("babel failed. "+(result1 && result1.code? "will use uglify output" : "will use uncompressed output"));
        }
 
        if (!result1 || !result1.code) return result2 ? result2.code :js_src;
@@ -95,7 +95,6 @@ module.exports = function ()
         return "\n/*"+comment+"*/\n"+
         nameify('$N',name)+"="+preloadedExploder(fn);
     }
-
 
     function makePackage(name,fn,listIndex,comment){
         var source = isPreloaded(fn) ? preloadedEmbed(fn,listIndex,comment) : installEmbed(fn,listIndex,comment);
@@ -157,7 +156,7 @@ module.exports = function ()
                 if (isPreloaded(js_source)) {
                     js_source =
                             '/*pre-packaged '+path.basename(filename)+' begin*/\n'+
-                            fs.readFileSync(filename,"utf8").trim();
+                            fs.readFileSync(filename,"utf8").trim()+'\n'+
                             '\n/*pre-packaged '+path.basename(filename)+' end*/\n';
 
                 }
@@ -217,7 +216,7 @@ module.exports = function ()
             }).join('\n') +
         '})([typeof process+typeof module+typeof require==="objectobjectfunction"?module.exports:window,'+
 
-           mods.map(function(el){return JSON.stringify(el.mod)}).join(',')+
+           mods.map(function(el){return JSON.stringify(el.mod);}).join(',')+
 
         ']);';
 
@@ -238,7 +237,7 @@ module.exports = function ()
                 }
                 if (js) {
                     var handler = (isPreloaded(js) ? preloadedNamedEmbed : installNamedEmbed);
-                    js = handler (js,el.mod,path.basename(el.file))
+                    js = handler (js,el.mod,path.basename(el.file));
                 }
                 delete el.js;
                 return  js;
@@ -256,7 +255,7 @@ module.exports = function ()
         if (name.match(/^[a-zA-Z_][a-zA-Z0-9_]*$/)) {
             return inside+'.'+name;
         } else {
-            return inside+'["'+name+'"]'
+            return inside+'["'+name+'"]';
         }
     }
 
@@ -352,7 +351,7 @@ module.exports = function ()
 
 
                             // now convert the index format back to an array in the "built" format
-                            var prevBuilt = Object.keys(info.dir).map(function(k){return info.dir[k]});
+                            var prevBuilt = Object.keys(info.dir).map(function(k){return info.dir[k];});
 
 
                             //console.log({list,prevBuilt});
@@ -424,7 +423,6 @@ module.exports = function ()
                      // JSZip generates a readable stream with a "end" event,
                      // but is piped here in a writable stream which emits a "finish" event.
                      //console.log((preBuilt ? "updated" : "saved"),zip_filename, "(with",json_filename,"inside)");
-                     console.log({zipContent});
 
                      if (extendAndCB) {
                          extendAndCB(null,list,preBuilt,built,zip,zipContent);
@@ -477,27 +475,181 @@ module.exports = function ()
 
     }
 
+    function zipLoaderFunc(filename) {
+
+        var
+        fs  =require("fs"),
+        path=require("path"),
+        JSZipPackageFile=require.resolve("jszip"),
+        JSZipPackagePath=path.dirname(JSZipPackageFile),
+        JSZipMinifiedPath=path.join(JSZipPackagePath,"..","dist","jszip.min.js"),
+        loader = JSZipBootloader(fs.readFileSync(JSZipMinifiedPath),fs.readFileSync(filename));
+        fs.writeFileSync(filename.replace(/\.zip$/,'.jszip'),loader.buffer);
+        fs.writeFileSync(filename.replace(/\.zip$/,'.zip-loader.js'),loader.script);
+
+        function JSZipBootloader(JSZipBuffer,ZipFileBuffer) {
+
+            var JSZipOffsetStart,JSZipOffsetEnd,ZipFileOffsetStart,ZipFileOffsetEnd;
+
+            function loader(func,str,arr,exp,cb) {
+                var getJSZip=function(){return func([],str(JSZipOffsetStart,JSZipOffsetEnd))();};
+                try {
+                    getJSZip();
+                    var zip = new exp.JSZip();
+                    zip.loadAsync(arr(ZipFileOffsetStart,ZipFileOffsetEnd))
+                      .then(function(zip){cb(null,zip);})
+                      .catch(cb);
+                } catch(err) {
+                    cb(err);
+                }
+            }
+
+            function loadJSZip (url,cb) {
+
+                try {
+
+                    var xhr=new window.XMLHttpRequest();
+
+                    xhr.open('GET', url, true);
+
+                    if ("responseType" in xhr) {
+                        xhr.responseType = "arraybuffer";
+                        xhr.ab = function(){return xhr.response};
+                    } else {
+                        xhr.ab  = function () {
+                            var s=xhr.responseText,ab=new ArrayBuffer(s.length*2);
+                            var vw = new Uint16Array(ab);
+                            for (var i=0, l=s.length; i<l; i++) {
+                               vw[i] = s.charCodeAt(i);
+                            }
+                            return ab;
+                        };
+                    }
+
+                    if(xhr.overrideMimeType) {
+                        xhr.overrideMimeType("text/plain; charset=x-user-defined");
+                    }
+
+                    xhr.onreadystatechange = function (event) {
+                        if (xhr.readyState === 4) {
+                            if (xhr.status === 200 || xhr.status === 0) {
+                                try {
+                                    bootload(xhr.ab(),window,cb);
+                                } catch(err) {
+                                    cb(new Error(err));
+                                }
+                            } else {
+                                cb(new Error("Ajax error for " + url + " : " + this.status + " " + this.statusText));
+                            }
+                        }
+                    };
+
+                    xhr.send();
+
+                } catch (e) {
+                    cb(new Error(e), null);
+                }
+
+
+
+            }
+
+            function bootload(ab,exp,cb) {
+                var
+                F=Function,
+                arr=ab.slice.bind(ab),
+                str=function(a,b){return String.fromCharCode.apply(null,new Uint8Array(ab.slice(a,b)));},
+                len=230,
+
+                re=new RegExp('^.*(?=\\/\\*)','s'),
+                //re=/\[[0-9|\s]{7},[0-9|\s]{7},[0-9|\s]{7}\]/,
+                m,newCall = function (Cls) {
+                   /*jshint -W058*/
+                   return new (F.prototype.bind.apply(Cls, arguments));
+                   /*jshint +W058*/
+                },func = function (args,code){
+                   return newCall.apply(this,[F].concat(args,[code]));
+                };
+
+                while (!(m=re.exec(str(0,len)))) {len += 10;}
+
+                return func(['func','str','arr','exp','cb'],m[0]) (func,str,arr,exp,cb);
+            }
+
+            function setVar(name,value,src) {
+                    return src.split(name).join(""+value);
+            }
+
+            function setValues(obj,src) {
+                Object.keys(obj).forEach(function(k){
+                    src=setVar(k,obj[k],src);
+                });
+                return src;
+            }
+
+            var
+            loadJSZip_src = loadJSZip.toString()+"\n"+bootload.toString()+"\n",
+            src_fixed_temp,src_fixed,
+            template  = loader.toString(),
+            setVars=function() {
+                JSZipOffsetStart   = src_fixed.length;
+                JSZipOffsetEnd     = JSZipOffsetStart+JSZipBuffer.length;
+                ZipFileOffsetStart = JSZipOffsetEnd;
+                ZipFileOffsetEnd   = ZipFileOffsetStart+ZipFileBuffer.length;
+                src_fixed_temp = minifyJS(
+                    setValues({
+                    JSZipOffsetStart   : JSZipOffsetStart,
+                    JSZipOffsetEnd     : JSZipOffsetEnd,
+                    ZipFileOffsetStart : ZipFileOffsetStart,
+                    ZipFileOffsetEnd   : ZipFileOffsetEnd
+                },template));
+            };
+
+            src_fixed = template = template.substring(template.indexOf('{')+1,template.length-1)+"\n";
+
+            setVars();
+
+            while (src_fixed.length !==src_fixed_temp.length) {
+                src_fixed = src_fixed_temp;
+                setVars();
+            }
+
+            return {
+                script:loadJSZip_src,
+                buffer:Buffer.concat([Buffer.from(src_fixed_temp),JSZipBuffer,ZipFileBuffer])
+            };
+
+        }
+    }
 
     return {
         build           : build,
         buildMulti      : buildMulti,
         buildNamed      : buildNamed,
         serveMulti      : serveMulti,
-        serveNamed      : serveNamed
-        };
+        serveNamed      : serveNamed,
+        minifyJS        : minifyJS,
+        zipLoaderFunc   : zipLoaderFunc
+    };
 };
 
 var mod;
 
-if(!process.mainModule) {
-    mod = module.exports();
-    global.build      = mod.build;
-    global.buildMulti = mod.buildMulti;
-    global.buildNamed = mod.buildNamed;
-    global.serveNamed = mod.serveNamed;
-    global.serveMulti = mod.serveMulti;
 
+
+
+if(!process.mainModule) {
+
+    mod                   = module.exports();
+    global.build          = mod.build;
+    global.buildMulti     = mod.buildMulti;
+    global.buildNamed     = mod.buildNamed;
+    global.serveNamed     = mod.serveNamed;
+    global.serveMulti     = mod.serveMulti;
+    global.zipLoaderFunc  = mod.zipLoaderFunc;
+    
 } else {
+
     if (process.mainModule===module && process.argv.indexOf("--test")>0) {
 
         mod = module.exports();
@@ -521,4 +673,12 @@ if(!process.mainModule) {
             });
         });
     }
+
+    if (process.mainModule===module && process.argv.indexOf("--ziptest")>0) {
+
+        mod = module.exports();
+        mod.zipLoaderFunc("./test.zip");
+
+    }
+
 }
