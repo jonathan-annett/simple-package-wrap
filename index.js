@@ -107,95 +107,95 @@ module.exports = function ()
 
     function build (filename,moduleName) {
 
-            var pkg_filename;
-            var min_filename;
+        var pkg_filename;
+        var min_filename;
 
-            var isList = typeof filename === 'object' && typeof filename.mod==='string' && filename.js,
-                saveLocally=true,
-                listIndex=0,
-                list;
+        var isList = typeof filename === 'object' && typeof filename.mod==='string' && filename.js,
+            saveLocally=true,
+            listIndex=0,
+            list;
 
-            if (isList) {
-                listIndex    = arguments[1];
-                if (typeof filename.index === 'number') {
-                    listIndex= filename.index;
-                }
-                list         = arguments[2];
-                moduleName   = filename.mod;
-                pkg_filename = filename.pkg;
-                min_filename = filename.min;
-                if (typeof filename.saveLocally === 'boolean') {
-                    saveLocally = filename.saveLocally;
-
-                }
-                filename     = filename.js;
-
-
-            } else {
-                moduleName  = typeof moduleName==='string' ? moduleName : def_mod_name(filename);
+        if (isList) {
+            listIndex    = arguments[1];
+            if (typeof filename.index === 'number') {
+                listIndex= filename.index;
             }
-
-            if (!filename) {
-                if(!process.mainModule) {
-                    return console.log("usage: build(filename,moduleName)");
-                }
-                throw new Error ("incorrect arguments passed to build");
-            }
-
-
-            var js_source;
-
-            try {
-                js_source=require(filename);
-            } catch (e) {
+            list         = arguments[2];
+            moduleName   = filename.mod;
+            pkg_filename = filename.pkg;
+            min_filename = filename.min;
+            if (typeof filename.saveLocally === 'boolean') {
+                saveLocally = filename.saveLocally;
 
             }
-            if (typeof js_source!=='function') {
-                js_source = fs.readFileSync(filename,"utf8").trim();
-            } else {
-                if (isPreloaded(js_source)) {
-                    js_source =
-                            '/*pre-packaged '+path.basename(filename)+' begin*/\n'+
-                            fs.readFileSync(filename,"utf8").trim()+'\n'+
-                            '\n/*pre-packaged '+path.basename(filename)+' end*/\n';
+            filename     = filename.js;
 
-                }
-            }
 
-            pkg_filename = pkg_filename || filename.replace(/\.js$/,'.pkg.js') ;
-            min_filename = min_filename || filename.replace(/\.js$/,'.min.js') ;
+        } else {
+            moduleName  = typeof moduleName==='string' ? moduleName : def_mod_name(filename);
+        }
 
-            var result = {
-                js   : js_source,
-                mod  : moduleName,
-                file : filename,
-                min  : {file : min_filename},
-            };
-
-            result.pkg=makePackage(moduleName,js_source,listIndex,filename);
-            result.pkg.file = pkg_filename;
-
-            js_source = result.pkg.js.join('');
-            if (saveLocally) fs.writeFileSync(pkg_filename ,js_source);
+        if (!filename) {
             if(!process.mainModule) {
-                console.log("wrote:",pkg_filename);
-                console.log("packaged source:",js_source.length,"chars. minifying...");
+                return console.log("usage: build(filename,moduleName)");
             }
+            throw new Error ("incorrect arguments passed to build");
+        }
 
-            if (filename.endsWith(".min.js")) {
-                delete result.min;
-            } else {
-                result.min.js = js_source = minifyJS(js_source);
-                if (saveLocally) fs.writeFileSync(min_filename,js_source);
-                if(!process.mainModule) {
-                    console.log("wrote:",min_filename);
-                    console.log("final minifed source:",js_source.length,"chars");
-                }
-            }
 
-            return isList ? result : undefined;
+        var js_source;
+
+        try {
+            js_source=require(filename);
+        } catch (e) {
 
         }
+        if (typeof js_source!=='function') {
+            js_source = fs.readFileSync(filename,"utf8").trim();
+        } else {
+            if (isPreloaded(js_source)) {
+                js_source =
+                        '/*pre-packaged '+path.basename(filename)+' begin*/\n'+
+                        fs.readFileSync(filename,"utf8").trim()+'\n'+
+                        '\n/*pre-packaged '+path.basename(filename)+' end*/\n';
+
+            }
+        }
+
+        pkg_filename = pkg_filename || filename.replace(/\.js$/,'.pkg.js') ;
+        min_filename = min_filename || filename.replace(/\.js$/,'.min.js') ;
+
+        var result = {
+            js   : js_source,
+            mod  : moduleName,
+            file : filename,
+            min  : {file : min_filename},
+        };
+
+        result.pkg=makePackage(moduleName,js_source,listIndex,filename);
+        result.pkg.file = pkg_filename;
+
+        js_source = result.pkg.js.join('');
+        if (saveLocally) fs.writeFileSync(pkg_filename ,js_source);
+        if(!process.mainModule) {
+            console.log("wrote:",pkg_filename);
+            console.log("packaged source:",js_source.length,"chars. minifying...");
+        }
+
+        if (filename.endsWith(".min.js")) {
+            delete result.min;
+        } else {
+            result.min.js = js_source = minifyJS(js_source);
+            if (saveLocally) fs.writeFileSync(min_filename,js_source);
+            if(!process.mainModule) {
+                console.log("wrote:",min_filename);
+                console.log("final minifed source:",js_source.length,"chars");
+            }
+        }
+
+        return isList ? result : undefined;
+
+    }
 
     function makeMultiPackage(mods){
 
@@ -221,6 +221,7 @@ module.exports = function ()
         ']);';
 
     }
+
     makeMultiPackage.preloadedEmbed= preloadedEmbed;
     makeMultiPackage.installEmbed= installEmbed;
 
@@ -588,7 +589,7 @@ module.exports = function ()
             }
 
             var
-            loadJSZip_src = loadJSZip.toString()+"\n"+bootload.toString()+"\n",
+            loadJSZip_src = minifyJS(bootload.toString())+"\n"+minifyJS(loadJSZip.toString())+"\n",
             src_fixed_temp,src_fixed,
             template  = loader.toString(),
             setVars=function() {
@@ -647,7 +648,7 @@ if(!process.mainModule) {
     global.serveNamed     = mod.serveNamed;
     global.serveMulti     = mod.serveMulti;
     global.zipLoaderFunc  = mod.zipLoaderFunc;
-    
+
 } else {
 
     if (process.mainModule===module && process.argv.indexOf("--test")>0) {
