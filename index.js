@@ -636,24 +636,36 @@ module.exports = function ()
 
             function nodeTester () {
 
-                function toArrayBuffer(buf) {
-                    var ab = new ArrayBuffer(2 + (2 * Math.floor(buf.length / 2)) );
-                    var view = new Uint8Array(ab);
-                    for (var i = 0; i < buf.length; ++i) {
-                        view[i] = buf[i];
-                    }
-                    return ab;
-                }
 
-                var
-                nodeBuf  = require("fs").readFileSync("${filename}"),
-                arrayBuf = toArrayBuffer(nodeBuf)
+                            var
+                            fs = require("fs"),
+                            path = require("path"),
+                            express=require("express"),
+                            app = express(),
+                            filename = path.resolve("${filename}"),
+                            jszip_filename = filename.replace(/\.zip$/,'.jszip'),
+                            zip_loader_fn = filename.replace(/\.zip$/,'.zip-loader.js'),
+                            zip_html_fn = filename.replace(/\.zip$/,'.zip-tester.html');
 
-                bootload(arrayBuf,global,function (err,zip){
-                    console.log(err,zip)
-                });
+                            fs.writeFileSync(zip_html_fn,[
+                                "<html>",
+                                "<head></head>",
+                                "<body>",
+                                "it all happens in the console.",
+                                '<script src="/'+path.basename(zip_loader_fn)+'"></script>',
+                                "</body>",
+                                "</html>",
+                                ].join("\n"));
 
-            }
+                            app.use("/"+path.basename(jszip_filename), express.static(jszip_filename));
+                            app.use("/"+path.basename(zip_loader_fn), express.static(zip_loader_fn));
+                            app.get("/", express.static(zip_html_fn));
+
+
+                            app.listen(3000);
+
+
+                        }
 
             return {
                 script     : loadJSZip_src+browserSuffix,
@@ -859,28 +871,39 @@ module.exports = function ()
 
             function nodeTester () {
 
-                function toArrayBuffer(buf) {
-                    var ab = new ArrayBuffer(2 + (2 * Math.floor(buf.length / 2)) );
-                    var view = new Uint8Array(ab);
-                    for (var i = 0; i < buf.length; ++i) {
-                        view[i] = buf[i];
-                    }
-                    return ab;
-                }
 
                 var
-                nodeBuf  = require("fs").readFileSync("${filename}"),
-                arrayBuf = toArrayBuffer(nodeBuf)
+                fs = require("fs"),
+                path = require("path"),
+                express=require("express"),
+                app = express(),
+                filename = path.resolve("${filename}"),
+                jszip_filename = filename.replace(/\.zip$/,'.jszip'),
+                pako_loader_fn = filename.replace(/\.zip$/,'.pako-loader.js'),
+                pako_html_fn = filename.replace(/\.zip$/,'.pako-tester.html');
 
-                bootload(arrayBuf,global,function (err,zip){
-                    console.log(err,zip)
-                });
+                fs.writeFileSync(pako_html_fn,[
+                    "<html>",
+                    "<head></head>",
+                    "<body>",
+                    "it all happens in the console.",
+                    '<script src="/'+path.basename(pako_loader_fn)+'"></script>',
+                    "</body>",
+                    "</html>",
+                    ].join("\n"));
+
+                app.use("/"+path.basename(jszip_filename), express.static(jszip_filename));
+                app.use("/"+path.basename(pako_loader_fn), express.static(pako_loader_fn));
+                app.get("/", express.static(pako_tester_fn));
+
+                app.listen(3000);
+
 
             }
 
             return {
                 script     : loadJSZip_src+browserSuffix,
-                nodeTester : loadJSZip_src+(extract_fn(nodeTester).split("${filename}").join(jszip_filename)),
+                nodeTester : loadJSZip_src+(extract_fn(nodeTester).split("${filename}").join(filename)),
                 buffer : Buffer.concat([Buffer.from(src_fixed_temp),PakoBuffer,JSZipBuffer,ZipFileBuffer])
             };
 
