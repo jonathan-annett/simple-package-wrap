@@ -894,7 +894,7 @@ module.exports = function ()
 
                 app.use("/"+path.basename(jszip_filename), express.static(jszip_filename));
                 app.use("/"+path.basename(pako_loader_fn), express.static(pako_loader_fn));
-                app.get("/", express.static(pako_tester_fn));
+                app.get("/", express.static(pako_html_fn));
 
                 app.listen(3000);
 
