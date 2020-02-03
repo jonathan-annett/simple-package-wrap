@@ -855,7 +855,7 @@ if (!$N) throw new Error("you need node.js to use this file");
                 }
 
                 var
-                nodeBuf  = require("fs").readFileSync("./test.jszip"),
+                nodeBuf  = require("fs").readFileSync("${filename}"),
                 arrayBuf = toArrayBuffer(nodeBuf)
 
                 bootload(arrayBuf,global,function (err,zip){

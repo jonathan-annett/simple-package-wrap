@@ -856,7 +856,7 @@ module.exports = function ()
                 }
 
                 var
-                nodeBuf  = require("fs").readFileSync("./test.jszip"),
+                nodeBuf  = require("fs").readFileSync("${filename}"),
                 arrayBuf = toArrayBuffer(nodeBuf)
 
                 bootload(arrayBuf,global,function (err,zip){
