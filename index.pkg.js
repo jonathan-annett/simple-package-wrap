@@ -85,7 +85,7 @@ if (!$N) throw new Error("you need node.js to use this file");
         var src =
         "\n/*"+comment+"*/\n"+
         nameify('$N',name)+"=(function($N){\n"+
-            (typeof fn==='function'?extract_fn(fn):fn)+"\n"+
+            (typeof fn==='function' ? extract_fn(fn):fn)+"\n"+
         "})(!$N.Document);\n";
         return src;
     }
@@ -221,9 +221,6 @@ if (!$N) throw new Error("you need node.js to use this file");
 
     }
 
-    makeMultiPackage.preloadedEmbed= preloadedEmbed;
-    makeMultiPackage.installEmbed= installEmbed;
-
     function makeNamedPackage(mods){
 
 
@@ -248,9 +245,6 @@ if (!$N) throw new Error("you need node.js to use this file");
 
     }
 
-    makeNamedPackage.preloadedEmbed= preloadedNamedEmbed;
-    makeNamedPackage.installEmbed= installNamedEmbed;
-
     function nameify(inside,name) {
         if (name.match(/^[a-zA-Z_][a-zA-Z0-9_]*$/)) {
             return inside+'.'+name;
@@ -272,7 +266,6 @@ if (!$N) throw new Error("you need node.js to use this file");
     }
 
     function mod_list(x,saveLocally) {
-
 
          switch(typeof x) {
             case "string" : return [{mod:def_mod_name(x), js : x, index:0, saveLocally:saveLocally}];
@@ -434,14 +427,10 @@ if (!$N) throw new Error("you need node.js to use this file");
         }
 
     function buildMulti(x,filename,extendAndCB) {
-
         return buildArray(x,filename,extendAndCB,makeMultiPackage,false,true);
-
-
     }
 
     function buildNamed(x,filename,extendAndCB) {
-
         return buildArray(x,filename,extendAndCB,makeNamedPackage,false,true);
     }
 
@@ -475,17 +464,35 @@ if (!$N) throw new Error("you need node.js to use this file");
 
     }
 
-    function createZipLoader(filename,eventName) {
+    function createZipLoader(filename,eventName,jsZipSrc) {
+        /*
+            takes a zip file (filename)
+            creates 2 files:
+                filename.jszip
+                filename.zip-loader.js
 
+                when loaded in a browser, filename.zip-loader.js will load filename.jszip along with bundled JSZip
+                JSZip will be installed into window.JSZip
+
+                the zipfile will be opened and delivered as a zip object via dispatchEvent as a customEvent with the name eventName
+
+                note: filename.jszip is effectively the contents of the zip file, prefixed with
+                    - a small javascript function with a loader function
+                    - the minified JSZip source
+                    the small javascript function contains information detailing the position within the file of
+                    both the JSZip library (uncompressed but minified,)
+
+            */
         var
         fs  =require("fs"),
         path=require("path"),
         JSZipPackageFile=require.resolve("jszip"),
         JSZipPackagePath=path.dirname(JSZipPackageFile),
-        JSZipMinifiedPath=path.join(JSZipPackagePath,"..","dist","jszip.min.js"),
+        JSZipMinifiedPath=jsZipSrc || path.join(JSZipPackagePath,"..","dist","jszip.min.js"),
         loader = JSZipBootloader(fs.readFileSync(JSZipMinifiedPath),fs.readFileSync(filename));
         fs.writeFileSync(filename.replace(/\.zip$/,'.jszip'),loader.buffer);
         fs.writeFileSync(filename.replace(/\.zip$/,'.zip-loader.js'),loader.script);
+        fs.writeFileSync(filename.replace(/\.zip$/,'.zip-tester.js'),loader.nodeTester);
 
         function JSZipBootloader(JSZipBuffer,ZipFileBuffer) {
 
@@ -590,9 +597,10 @@ if (!$N) throw new Error("you need node.js to use this file");
             var
             loadJSZip_src =
                 minifyJS(bootload.toString())+"\n"+
-                minifyJS(loadJSZip.toString())+"\n"+
-                "loadJSZip('/"+path.basename(filename).replace(/\.zip$/,'.zip-loader.js')+"'"+
-                ",function(){window.dispatchEvent(new CustomEvent('"+eventName+"');});\n",
+                minifyJS(loadJSZip.toString())+"\n",
+            browserSuffix=
+                "loadJSZip('/"+path.basename(filename).replace(/\.zip$/,'.zip-loader.js')+"',"+
+                "function(err,zip){if(!err)window.dispatchEvent(new CustomEvent('"+eventName+"',{detail:{zip:zip}});});\n",
             src_fixed_temp,src_fixed,
             template  = loader.toString(),
             setVars=function() {
@@ -609,7 +617,7 @@ if (!$N) throw new Error("you need node.js to use this file");
                 },template));
             };
 
-            src_fixed = template = template.substring(template.indexOf('{')+1,template.length-1)+"\n";
+            src_fixed = template = extract_fn(template)+"\n";
 
             setVars();
 
@@ -618,9 +626,248 @@ if (!$N) throw new Error("you need node.js to use this file");
                 setVars();
             }
 
+            function nodeTester () {
+
+                function toArrayBuffer(buf) {
+                    var ab = new ArrayBuffer(2 + (2 * Math.floor(buf.length / 2)) );
+                    var view = new Uint8Array(ab);
+                    for (var i = 0; i < buf.length; ++i) {
+                        view[i] = buf[i];
+                    }
+                    return ab;
+                }
+
+                var
+                nodeBuf  = require("fs").readFileSync("./test.jszip"),
+                arrayBuf = toArrayBuffer(nodeBuf)
+
+                bootload(arrayBuf,global,function (err,zip){
+                    console.log(err,zip)
+                });
+
+            }
+
             return {
-                script:loadJSZip_src,
-                buffer:Buffer.concat([Buffer.from(src_fixed_temp),JSZipBuffer,ZipFileBuffer])
+                script     : loadJSZip_src+browserSuffix,
+                nodeTester : loadJSZip_src+extract_fn(nodeTester),
+                buffer : Buffer.concat([Buffer.from(src_fixed_temp),JSZipBuffer,ZipFileBuffer])
+            };
+
+        }
+
+    }
+
+    function createPakoLoader(filename,eventName,jsZipSrc) {
+        /*
+            takes a zip file (filename)
+            creates 2 files:
+                filename.jszip
+                filename.zip-loader.js
+
+                when loaded in a browser, filename.zip-loader.js will load filename.jszip along with bundled JSZip
+                JSZip will be installed into window.JSZip
+
+                the zipfile will be opened and delivered as a zip object via dispatchEvent as a customEvent with the name eventName
+
+                note: filename.jszip is effectively the contents of the zip file, prefixed with
+                    - a small javascript function with a loader function
+                    - the minified JSZip source
+                    the small javascript function contains information detailing the position within the file of
+                    both the JSZip library (uncompressed but minified,)
+
+            */
+        var
+        fs  =require("fs"),
+        path=require("path"),
+        JSZipPackageFile=require.resolve("jszip"),
+        JSZipPackagePath=path.dirname(JSZipPackageFile),
+        JSZipMinifiedPath= jsZipSrc || path.join(JSZipPackagePath,"..","dist","jszip.min.js"),
+        zlib = require('zlib'),
+        PakoPackageFile=require.resolve("pako"),
+        PakoPackagePath=path.dirname(PakoPackageFile),
+        PakoMinifiedPath=path.join(PakoPackagePath,"dist","pako_inflate.min.js"),
+
+
+        loader = JSZipBootloader(
+            fs.readFileSync(PakoMinifiedPath),
+            zlib.deflateSync(fs.readFileSync(JSZipMinifiedPath)),
+            fs.readFileSync(filename));
+
+        fs.writeFileSync(filename.replace(/\.zip$/,'.jszip'),loader.buffer);
+        fs.writeFileSync(filename.replace(/\.zip$/,'.pako-loader.js'),loader.script);
+        fs.writeFileSync(filename.replace(/\.zip$/,'.pako-tester.js'),loader.nodeTester);
+
+        function JSZipBootloader(PakoBuffer,JSZipBuffer,ZipFileBuffer) {
+
+            var
+            pakoOffsetStart,pakoOffsetEnd,
+            JSZipOffsetStart,JSZipOffsetEnd,
+            ZipFileOffsetStart,ZipFileOffsetEnd;
+
+            function loader(func,str,arr,exp,cb) {
+                var
+                getPako=function(){return func([],str(pakoOffsetStart,pakoOffsetEnd))();},
+                getJSZip=function(){return func([],exp.pako.inflate(arr(JSZipOffsetStart,JSZipOffsetEnd),{to:'string'}))();};
+                try {
+                    getPako();
+                    getJSZip();
+                    var zip = new exp.JSZip();
+                    zip.loadAsync(arr(ZipFileOffsetStart,ZipFileOffsetEnd))
+                      .then(function(zip){cb(null,zip);})
+                      .catch(cb);
+                } catch(err) {
+                    cb(err);
+                }
+            }
+
+            function loadJSZip (url,cb) {
+
+                try {
+
+                    var xhr=new window.XMLHttpRequest();
+
+                    xhr.open('GET', url, true);
+
+                    if ("responseType" in xhr) {
+                        xhr.responseType = "arraybuffer";
+                        xhr.ab = function(){return xhr.response};
+                    } else {
+                        xhr.ab  = function () {
+                            var s=xhr.responseText,ab=new ArrayBuffer(s.length*2);
+                            var vw = new Uint16Array(ab);
+                            for (var i=0, l=s.length; i<l; i++) {
+                               vw[i] = s.charCodeAt(i);
+                            }
+                            return ab;
+                        };
+                    }
+
+                    if(xhr.overrideMimeType) {
+                        xhr.overrideMimeType("text/plain; charset=x-user-defined");
+                    }
+
+                    xhr.onreadystatechange = function (event) {
+                        if (xhr.readyState === 4) {
+                            if (xhr.status === 200 || xhr.status === 0) {
+                                try {
+                                    bootload(xhr.ab(),window,cb);
+                                } catch(err) {
+                                    cb(new Error(err));
+                                }
+                            } else {
+                                cb(new Error("Ajax error for " + url + " : " + this.status + " " + this.statusText));
+                            }
+                        }
+                    };
+
+                    xhr.send();
+
+                } catch (e) {
+                    cb(new Error(e), null);
+                }
+
+
+
+            }
+
+            function bootload(ab,exp,cb) {
+                var
+                F=Function,
+                arr=ab.slice.bind(ab),
+                str=function(a,b){return String.fromCharCode.apply(null,new Uint8Array(ab.slice(a,b)));},
+                len=230,
+
+                re=new RegExp('^.*(?<=\\/\\*.*\\*\\/)','s'),
+                //re=/\[[0-9|\s]{7},[0-9|\s]{7},[0-9|\s]{7}\]/,
+                m,newCall = function (Cls) {
+                   /*jshint -W058*/
+                   return new (F.prototype.bind.apply(Cls, arguments));
+                   /*jshint +W058*/
+                },func = function (args,code){
+                   return newCall.apply(this,[F].concat(args,[code]));
+                };
+
+                while (!(m=re.exec(str(0,len)))) {len += 10;}
+
+                return func(['func','str','arr','exp','cb'],m[0]) (func,str,arr,exp,cb);
+            }
+
+            function setVar(name,value,src) {
+                    return src.split(name).join(""+value);
+            }
+
+            function setValues(obj,src) {
+                Object.keys(obj).forEach(function(k){
+                    src=setVar(k,obj[k],src);
+                });
+                return src;
+            }
+
+            var
+            loadJSZip_src =
+                minifyJS(bootload.toString())+"\n"+
+                minifyJS(loadJSZip.toString())+"\n",
+            browserSuffix=
+                "loadJSZip('/"+path.basename(filename).replace(/\.zip$/,'.zip-loader.js')+"',"+
+                "function(err,zip){if(!err)window.dispatchEvent(new CustomEvent('"+eventName+"',{detail:{zip:zip}});});\n",
+            src_fixed_temp,src_fixed,
+            template  = loader.toString(),
+            setVars=function() {
+                pakoOffsetStart = src_fixed.length;
+                pakoOffsetEnd   = pakoOffsetStart + PakoBuffer.length;
+
+                JSZipOffsetStart   = pakoOffsetEnd;
+                JSZipOffsetEnd     = JSZipOffsetStart+JSZipBuffer.length;
+
+                ZipFileOffsetStart = JSZipOffsetEnd;
+                ZipFileOffsetEnd   = ZipFileOffsetStart+ZipFileBuffer.length;
+
+                src_fixed_temp = minifyJS(
+                    setValues({
+                    pakoOffsetStart    : pakoOffsetStart,
+                    pakoOffsetEnd      : pakoOffsetEnd,
+                    JSZipOffsetStart   : JSZipOffsetStart,
+                    JSZipOffsetEnd     : JSZipOffsetEnd,
+                    ZipFileOffsetStart : ZipFileOffsetStart,
+                    ZipFileOffsetEnd   : ZipFileOffsetEnd
+                },template))+'/**/';
+
+            };
+
+            src_fixed = template = extract_fn(template)+"\n";
+
+            setVars();
+
+            while (src_fixed.length !==src_fixed_temp.length) {
+                src_fixed = src_fixed_temp;
+                setVars();
+            }
+
+            function nodeTester () {
+
+                function toArrayBuffer(buf) {
+                    var ab = new ArrayBuffer(2 + (2 * Math.floor(buf.length / 2)) );
+                    var view = new Uint8Array(ab);
+                    for (var i = 0; i < buf.length; ++i) {
+                        view[i] = buf[i];
+                    }
+                    return ab;
+                }
+
+                var
+                nodeBuf  = require("fs").readFileSync("./test.jszip"),
+                arrayBuf = toArrayBuffer(nodeBuf)
+
+                bootload(arrayBuf,global,function (err,zip){
+                    console.log(err,zip)
+                });
+
+            }
+
+            return {
+                script     : loadJSZip_src+browserSuffix,
+                nodeTester : loadJSZip_src+extract_fn(nodeTester),
+                buffer : Buffer.concat([Buffer.from(src_fixed_temp),PakoBuffer,JSZipBuffer,ZipFileBuffer])
             };
 
         }
@@ -633,7 +880,8 @@ if (!$N) throw new Error("you need node.js to use this file");
         serveMulti       : serveMulti,
         serveNamed       : serveNamed,
         minifyJS         : minifyJS,
-        createZipLoader : createZipLoader
+        createZipLoader  : createZipLoader,
+        createPakoLoader : createPakoLoader
     };
 })(!$N[0].Document);
 

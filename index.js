@@ -86,7 +86,7 @@ module.exports = function ()
         var src =
         "\n/*"+comment+"*/\n"+
         nameify('$N',name)+"=(function($N){\n"+
-            (typeof fn==='function'?extract_fn(fn):fn)+"\n"+
+            (typeof fn==='function' ? extract_fn(fn):fn)+"\n"+
         "})(!$N.Document);\n";
         return src;
     }
@@ -222,9 +222,6 @@ module.exports = function ()
 
     }
 
-    makeMultiPackage.preloadedEmbed= preloadedEmbed;
-    makeMultiPackage.installEmbed= installEmbed;
-
     function makeNamedPackage(mods){
 
 
@@ -249,9 +246,6 @@ module.exports = function ()
 
     }
 
-    makeNamedPackage.preloadedEmbed= preloadedNamedEmbed;
-    makeNamedPackage.installEmbed= installNamedEmbed;
-
     function nameify(inside,name) {
         if (name.match(/^[a-zA-Z_][a-zA-Z0-9_]*$/)) {
             return inside+'.'+name;
@@ -273,7 +267,6 @@ module.exports = function ()
     }
 
     function mod_list(x,saveLocally) {
-
 
          switch(typeof x) {
             case "string" : return [{mod:def_mod_name(x), js : x, index:0, saveLocally:saveLocally}];
@@ -435,14 +428,10 @@ module.exports = function ()
         }
 
     function buildMulti(x,filename,extendAndCB) {
-
         return buildArray(x,filename,extendAndCB,makeMultiPackage,false,true);
-
-
     }
 
     function buildNamed(x,filename,extendAndCB) {
-
         return buildArray(x,filename,extendAndCB,makeNamedPackage,false,true);
     }
 
@@ -476,8 +465,7 @@ module.exports = function ()
 
     }
 
-
-    function createZipLoader(filename,eventName) {
+    function createZipLoader(filename,eventName,jsZipSrc) {
         /*
             takes a zip file (filename)
             creates 2 files:
@@ -501,7 +489,7 @@ module.exports = function ()
         path=require("path"),
         JSZipPackageFile=require.resolve("jszip"),
         JSZipPackagePath=path.dirname(JSZipPackageFile),
-        JSZipMinifiedPath=path.join(JSZipPackagePath,"..","dist","jszip.min.js"),
+        JSZipMinifiedPath=jsZipSrc || path.join(JSZipPackagePath,"..","dist","jszip.min.js"),
         loader = JSZipBootloader(fs.readFileSync(JSZipMinifiedPath),fs.readFileSync(filename));
         fs.writeFileSync(filename.replace(/\.zip$/,'.jszip'),loader.buffer);
         fs.writeFileSync(filename.replace(/\.zip$/,'.zip-loader.js'),loader.script);
@@ -630,7 +618,7 @@ module.exports = function ()
                 },template));
             };
 
-            src_fixed = template = template.substring(template.indexOf('{')+1,template.length-1)+"\n";
+            src_fixed = template = extract_fn(template)+"\n";
 
             setVars();
 
@@ -660,24 +648,17 @@ module.exports = function ()
 
             }
 
-            var nodeJSSuffix = nodeTester.toString();
-            nodeJSSuffix = nodeJSSuffix.substring(nodeJSSuffix.indexOf("{")+1,nodeJSSuffix.length-1);
-
-
             return {
                 script     : loadJSZip_src+browserSuffix,
-                nodeTester : loadJSZip_src+nodeJSSuffix,
+                nodeTester : loadJSZip_src+extract_fn(nodeTester),
                 buffer : Buffer.concat([Buffer.from(src_fixed_temp),JSZipBuffer,ZipFileBuffer])
             };
 
         }
 
-
-
-
     }
 
-    function createPakoLoader(filename,eventName) {
+    function createPakoLoader(filename,eventName,jsZipSrc) {
         /*
             takes a zip file (filename)
             creates 2 files:
@@ -701,7 +682,7 @@ module.exports = function ()
         path=require("path"),
         JSZipPackageFile=require.resolve("jszip"),
         JSZipPackagePath=path.dirname(JSZipPackageFile),
-        JSZipMinifiedPath=path.join(JSZipPackagePath,"..","dist","jszip.min.js"),
+        JSZipMinifiedPath= jsZipSrc || path.join(JSZipPackagePath,"..","dist","jszip.min.js"),
         zlib = require('zlib'),
         PakoPackageFile=require.resolve("pako"),
         PakoPackagePath=path.dirname(PakoPackageFile),
@@ -854,7 +835,7 @@ module.exports = function ()
 
             };
 
-            src_fixed = template = template.substring(template.indexOf('{')+1,template.length-1)+"\n";
+            src_fixed = template = extract_fn(template)+"\n";
 
             setVars();
 
@@ -884,21 +865,13 @@ module.exports = function ()
 
             }
 
-            var nodeJSSuffix = nodeTester.toString();
-            nodeJSSuffix = nodeJSSuffix.substring(nodeJSSuffix.indexOf("{")+1,nodeJSSuffix.length-1);
-
-
             return {
                 script     : loadJSZip_src+browserSuffix,
-                nodeTester : loadJSZip_src+nodeJSSuffix,
+                nodeTester : loadJSZip_src+extract_fn(nodeTester),
                 buffer : Buffer.concat([Buffer.from(src_fixed_temp),PakoBuffer,JSZipBuffer,ZipFileBuffer])
             };
 
         }
-
-
-
-
     }
 
     return {
@@ -911,12 +884,10 @@ module.exports = function ()
         createZipLoader  : createZipLoader,
         createPakoLoader : createPakoLoader
     };
+
 };
 
 var mod;
-
-
-
 
 if(!process.mainModule) {
 
