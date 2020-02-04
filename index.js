@@ -606,9 +606,11 @@ module.exports = function ()
             loadJSZip_src =
                 minifyJS(bootload.toString())+"\n"+
                 minifyJS(loadJSZip.toString())+"\n",
+
             browserSuffix=
-                "loadJSZip('"+path.basename(jszip_filename)+"',"+
-                "function(err,zip){if(!err)window.dispatchEvent(new CustomEvent('"+eventName+"',{detail:{zip:zip}}));});\n",
+            "setTimeout(function(){ debugger; loadJSZip('"+path.basename(jszip_filename)+"',"+
+            "function(err,zip){if(!err)window.dispatchEvent(new CustomEvent('"+eventName+"',{detail:{zip:zip}}));});\n},10000);\n",
+
             src_fixed_temp,src_fixed,
             template  = loader.toString(),
             setVars=function() {
@@ -694,7 +696,7 @@ module.exports = function ()
 
             return {
                 script     : loadJSZip_src+browserSuffix,
-                nodeTester : loadJSZip_src+(extract_fn(nodeTester).split("${filename}").join(jszip_filename)),
+                nodeTester : extract_fn(nodeTester).split("${filename}").join(jszip_filename),
                 buffer : Buffer.concat([Buffer.from(src_fixed_temp),JSZipBuffer,ZipFileBuffer])
             };
 
@@ -860,8 +862,8 @@ module.exports = function ()
                 minifyJS(bootload.toString())+"\n"+
                 minifyJS(loadJSZip.toString())+"\n",
             browserSuffix=
-                "loadJSZip('"+path.basename(pako_loader_fn)+"',"+
-                "function(err,zip){if(!err)window.dispatchEvent(new CustomEvent('"+eventName+"',{detail:{zip:zip}}));});\n",
+                "setTimeout(function(){ debugger; loadJSZip('"+path.basename(pako_loader_fn)+"',"+
+                "function(err,zip){if(!err)window.dispatchEvent(new CustomEvent('"+eventName+"',{detail:{zip:zip}}));});\n},10000);\n",
             src_fixed_temp,src_fixed,
             template  = loader.toString(),
             setVars=function() {
@@ -956,7 +958,7 @@ module.exports = function ()
 
             return {
                 script     : loadJSZip_src+browserSuffix,
-                nodeTester : loadJSZip_src+(extract_fn(nodeTester).split("${filename}").join(filename)),
+                nodeTester : extract_fn(nodeTester).split("${filename}").join(filename),
                 buffer : Buffer.concat([Buffer.from(src_fixed_temp),PakoBuffer,JSZipBuffer,ZipFileBuffer])
             };
 
