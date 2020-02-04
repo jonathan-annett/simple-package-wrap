@@ -861,7 +861,7 @@ if (!$N) throw new Error("you need node.js to use this file");
                 minifyJS(bootload.toString())+"\n"+
                 minifyJS(loadJSZip.toString())+"\n",
             browserSuffix=
-                "setTimeout(function(){ debugger; loadJSZip('"+path.basename(pako_loader_fn)+"',"+
+                "setTimeout(function(){ debugger; loadJSZip('"+path.basename(jszip_filename)+"',"+
                 "function(err,zip){if(!err)window.dispatchEvent(new CustomEvent('"+eventName+"',{detail:{zip:zip}}));});\n},10000);\n",
             src_fixed_temp,src_fixed,
             template  = loader.toString(),
