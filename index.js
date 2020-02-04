@@ -755,11 +755,11 @@ module.exports = function ()
 
             function loader(func,str,arr,exp,cb) {
                 var
-                getPako=function(){return func([],str(pakoOffsetStart,pakoOffsetEnd))();},
-                getJSZip=function(){return func([],exp.pako.inflate(arr(JSZipOffsetStart,JSZipOffsetEnd),{to:'string'}))();};
+                p=function(){return func([],str(pakoOffsetStart,pakoOffsetEnd))();},
+                z=function(){return func([],exp.pako.inflate(arr(JSZipOffsetStart,JSZipOffsetEnd),{to:'string'}))();};
                 try {
-                    getPako();
-                    getJSZip();
+                    p();
+                    z();
                     var zip = new exp.JSZip();
                     zip.loadAsync(arr(ZipFileOffsetStart,ZipFileOffsetEnd))
                       .then(function(zip){cb(null,zip);})
@@ -767,6 +767,7 @@ module.exports = function ()
                 } catch(err) {
                     cb(err);
                 }
+                p=z=null;
             }
 
             function loadJSZip (url,cb) {
@@ -826,7 +827,7 @@ module.exports = function ()
                 str=function(a,b){return String.fromCharCode.apply(null,new Uint8Array(ab.slice(a,b)));},
                 len=230,
 
-                re=new RegExp('^.*(?<=\\/\\*.*\\*\\/)','s'),
+                re=new RegExp('^.*(?<=(p\\w*=\\w*z=\\w*null\\w*;))','s'),
                 //re=/\[[0-9|\s]{7},[0-9|\s]{7},[0-9|\s]{7}\]/,
                 m,newCall = function (Cls) {
                    /*jshint -W058*/
