@@ -664,19 +664,23 @@ module.exports = function ()
                                 return false;
                             }
 
-                            fs.writeFileSync(zip_html_fn,[
-                                "<html>",
-                                "<head></head>",
-                                "<body>",
-                                "it all happens in the console.",
-                                '<script src="/'+path.basename(zip_loader_fn)+'"></script>',
-                                "</body>",
-                                "</html>",
-                                ].join("\n"));
+                            var html = [
+                                       "<html>",
+                                       "<head></head>",
+                                       "<body>",
+                                       "it all happens in the console.",
+                                       '<script src="/'+path.basename(zip_loader_fn)+'"></script>',
+                                       "</body>",
+                                       "</html>",
+                                       ].join("\n");
+
+                            fs.writeFileSync(zip_html_fn,html);
 
                             app.use("/"+path.basename(jszip_filename), express.static(jszip_filename));
                             app.use("/"+path.basename(zip_loader_fn), express.static(zip_loader_fn));
-                            app.get("/", express.static(zip_html_fn));
+                            app.get("/", function(req,res){
+                                res.send(html);
+                            });
 
 
                             var listener = app.listen(3000, function() {
@@ -856,7 +860,7 @@ module.exports = function ()
                 minifyJS(loadJSZip.toString())+"\n",
             browserSuffix=
                 "loadJSZip('"+path.basename(pako_loader_fn)+"',"+
-                "function(err,zip){if(!err)window.dispatchEvent(new CustomEvent('"+eventName+"',{detail:{zip:zip}});}));\n",
+                "function(err,zip){if(!err)window.dispatchEvent(new CustomEvent('"+eventName+"',{detail:{zip:zip}}));});\n",
             src_fixed_temp,src_fixed,
             template  = loader.toString(),
             setVars=function() {
@@ -920,19 +924,24 @@ module.exports = function ()
                     return false;
                 }
 
-                fs.writeFileSync(pako_html_fn,[
-                    "<html>",
-                    "<head></head>",
-                    "<body>",
-                    "it all happens in the console.",
-                    '<script src="/'+path.basename(pako_loader_fn)+'"></script>',
-                    "</body>",
-                    "</html>",
-                    ].join("\n"));
+                var html = [
+                           "<html>",
+                           "<head></head>",
+                           "<body>",
+                           "it all happens in the console.",
+                           '<script src="/'+path.basename(pako_loader_fn)+'"></script>',
+                           "</body>",
+                           "</html>",
+                           ].join("\n");
 
+                fs.writeFileSync(pako_html_fn,html);
+
+                app.get("/", function(req,res){
+                    res.send(html);
+                });
                 app.use("/"+path.basename(jszip_filename), express.static(jszip_filename));
                 app.use("/"+path.basename(pako_loader_fn), express.static(pako_loader_fn));
-                app.get("/", express.static(pako_html_fn));
+
 
                 var listener = app.listen(3000, function() {
                     var url =  'http://'+hostname+':' + listener.address().port + "/";
