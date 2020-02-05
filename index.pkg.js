@@ -10,9 +10,9 @@ if (!$N) throw new Error("you need node.js to use this file");
     fs             = require("fs"),
     UglifyJS       = require("uglify-js"),
     babel          = require("babel-core"),
-    extract_fn     = function(fn,data){
+    extract_fn     = function(fn,data,keep){
         fn = fn.toString();
-        fn = fn.substring(fn.indexOf('{')+1,fn.lastIndexOf('}')).trim();
+        if (!keep) fn = fn.substring(fn.indexOf('{')+1,fn.lastIndexOf('}')).trim();
         if (data) {
             Object.keys(data).forEach(function(k){
                 fn=fn.split('${'+k+'}').join(data[k]);
@@ -587,7 +587,7 @@ if (!$N) throw new Error("you need node.js to use this file");
                 F=Function,
                 arr=ab.slice.bind(ab),
                 str=function(a,b){return String.fromCharCode.apply(null,new Uint8Array(ab.slice(a,b)));},
-                len=230,
+                len=+'${bootlength}',
 
                 re=new RegExp('^.*(?=\\/\\*)','s'),
                 //re=/\[[0-9|\s]{7},[0-9|\s]{7},[0-9|\s]{7}\]/,
@@ -616,9 +616,11 @@ if (!$N) throw new Error("you need node.js to use this file");
             }
 
             var
-                loadJSZip_src =
-                minifyJS(bootload.toString())+"\n"+
-                minifyJS(loadJSZip.toString())+"\n",
+
+            template  = loader.toString(),
+            loadJSZip_src =
+            minifyJS(extract_fn(bootload,{bootlength:template.length+20},true))+"\n"+
+            minifyJS(loadJSZip.toString())+"\n",
 
             browserSuffixFn = function(){
 
@@ -651,7 +653,6 @@ if (!$N) throw new Error("you need node.js to use this file");
             })),
 
             src_fixed_temp,src_fixed,
-            template  = loader.toString(),
             setVars=function() {
                 JSZipOffsetStart   = src_fixed.length;
                 JSZipOffsetEnd     = JSZipOffsetStart+JSZipBuffer.length;
@@ -873,7 +874,7 @@ if (!$N) throw new Error("you need node.js to use this file");
                 F=Function,
                 arr=ab.slice.bind(ab),
                 str=function(a,b){return String.fromCharCode.apply(null,new Uint8Array(ab.slice(a,b)));},
-                len=230,
+                len=+'${bootlength}',
 
                 re=new RegExp('^.*(?<=(p\\w*=\\w*z=\\w*null\\w*;))','s'),
                 //re=/\[[0-9|\s]{7},[0-9|\s]{7},[0-9|\s]{7}\]/,
@@ -904,9 +905,10 @@ if (!$N) throw new Error("you need node.js to use this file");
 
 
             var
-                loadJSZip_src =
-                minifyJS(bootload.toString())+"\n"+
-                minifyJS(loadJSZip.toString())+"\n",
+            template  = loader.toString(),
+            loadJSZip_src =
+            minifyJS(extract_fn(bootload,{bootlength:template.length+20},true))+"\n"+
+            minifyJS(loadJSZip.toString())+"\n",
 
             browserSuffixFn = function(){
 
@@ -939,7 +941,6 @@ if (!$N) throw new Error("you need node.js to use this file");
             })),
 
             src_fixed_temp,src_fixed,
-            template  = loader.toString(),
             setVars=function() {
                 pakoOffsetStart = src_fixed.length;
                 pakoOffsetEnd   = pakoOffsetStart + PakoBuffer.length;
