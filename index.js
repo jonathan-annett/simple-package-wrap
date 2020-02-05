@@ -16,7 +16,7 @@ module.exports = function ()
         fn = fn.substring(fn.indexOf('{')+1,fn.lastIndexOf('}')).trim();
         if (data) {
             Object.keys(data).forEach(function(k){
-                fn=fn.split(k).join(data[k]);
+                fn=fn.split('${'+k+'}').join(data[k]);
             });
         }
         return fn;
