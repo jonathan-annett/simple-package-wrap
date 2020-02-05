@@ -646,10 +646,10 @@ module.exports = function ()
                     } );
             },
 
-            browserSuffix=extract_fn(browserSuffixFn,{
+            browserSuffix=minifyJS(extract_fn(browserSuffixFn,{
                 filename:path.basename(jszip_filename),
                 eventName:eventName
-            }),
+            })),
 
             src_fixed_temp,src_fixed,
             template  = loader.toString(),
@@ -934,10 +934,10 @@ module.exports = function ()
                     } );
             },
 
-            browserSuffix=extract_fn(browserSuffixFn,{
+            browserSuffix=minifyJS(extract_fn(browserSuffixFn,{
                 filename:path.basename(jszip_filename),
                 eventName:eventName
-            }),
+            })),
 
             src_fixed_temp,src_fixed,
             template  = loader.toString(),
