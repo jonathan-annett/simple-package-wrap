@@ -754,30 +754,22 @@ module.exports = function ()
 
     function createPakoLoader(filename,eventName,jsZipSrc,extraModules) {
         /*
-            takes a zip file (filename)
-            creates 2 files:
-                filename.jszip
-                filename.zip-loader.js
+            functionally identical to createZipLoader() however:
+            jszip source is precompressed as a zlib deflate-stream, with pako-defalte minify code
+            injected at the start to reduce size of overall payload
+            this could possibly be reduced further by emovo
 
-                when loaded in a browser, filename.zip-loader.js will load filename.jszip along with bundled JSZip
-                JSZip will be installed into window.JSZip
-
-                the zipfile will be opened and delivered as a zip object via dispatchEvent as a customEvent with the name eventName
-
-                note: filename.jszip is effectively the contents of the zip file, prefixed with
-                    - a small javascript function with a loader function
-                    - the minified JSZip source
-                    the small javascript function contains information detailing the position within the file of
-                    both the JSZip library (uncompressed but minified,)
-
-            */
+        */
         var
-        fs  =require("fs"),
-        path=require("path"),
+        fs   = require("fs"),
+        path = require("path"),
+        zlib = require('zlib'),
+
         JSZipPackageFile=require.resolve("jszip"),
         JSZipPackagePath=path.dirname(JSZipPackageFile),
-        JSZipMinifiedPath= jsZipSrc || path.join(JSZipPackagePath,"..","dist","jszip.min.js"),
-        zlib = require('zlib'),
+
+        //JSZipMinifiedPath= jsZipSrc || path.join(JSZipPackagePath,"..","dist","jszip.min.js"),
+        JSZipMinifiedPath= jsZipSrc || path.join(JSZipPackagePath,"..","dist","jszip.js"),
         PakoPackageFile=require.resolve("pako"),
         PakoPackagePath=path.dirname(PakoPackageFile),
         PakoMinifiedPath=path.join(PakoPackagePath,"dist","pako_inflate.min.js"),
