@@ -706,15 +706,22 @@ if (!$N) throw new Error("you need node.js to use this file");
                             }
 
                             var html = [
-                                       "<html>",
-                                       "<head></head>",
-                                       "<body>",
-                                       '<div id="info">loading...</div>',
-                                       '<script src="/'+path.basename(zip_loader_fn)+'"></script>',
-                                       '<script>window.addEventListener("${eventName}",function(e){ document.getElementById("info").innerHTML="done"; console.log(e); });</script>',
-                                       "</body>",
-                                       "</html>",
-                                       ].join("\n");
+                                        "<html>",
+                                        "<head></head>",
+                                        "<body>",
+                                        '<div id="info">loading...</div>',
+                                        '<script src="/'+path.basename(zip_loader_fn)+'"></script>',
+                                        '<script>',
+                                        'window.addEventListener(',
+                                        '  "${eventName}",',
+                                        '  function(e){',
+                                        '    document.getElementById("info").innerHTML="done";',
+                                        '    console.log(e);',
+                                        '});',
+                                        '</script>',
+                                        "</body>",
+                                        "</html>",
+                                        ].join("\n");
 
                             fs.writeFileSync(zip_html_fn,html);
 
@@ -1008,7 +1015,14 @@ if (!$N) throw new Error("you need node.js to use this file");
                            "<body>",
                            '<div id="info">loading...</div>',
                            '<script src="/'+path.basename(pako_loader_fn)+'"></script>',
-                           '<script>window.addEventListener("${eventName}",function(e){ document.getElementById("info").innerHTML="done"; console.log(e); });</script>',
+                           '<script>',
+                           'window.addEventListener(',
+                           '  "${eventName}",',
+                           '  function(e){',
+                           '    document.getElementById("info").innerHTML="done";',
+                           '    console.log(e);',
+                           '});',
+                           '</script>',
                            "</body>",
                            "</html>",
                            ].join("\n");

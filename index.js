@@ -707,15 +707,22 @@ module.exports = function ()
                             }
 
                             var html = [
-                                       "<html>",
-                                       "<head></head>",
-                                       "<body>",
-                                       '<div id="info">loading...</div>',
-                                       '<script src="/'+path.basename(zip_loader_fn)+'"></script>',
-                                       '<script>window.addEventListener("${eventName}",function(e){ document.getElementById("info").innerHTML="done"; console.log(e); });</script>',
-                                       "</body>",
-                                       "</html>",
-                                       ].join("\n");
+                                        "<html>",
+                                        "<head></head>",
+                                        "<body>",
+                                        '<div id="info">loading...</div>',
+                                        '<script src="/'+path.basename(zip_loader_fn)+'"></script>',
+                                        '<script>',
+                                        'window.addEventListener(',
+                                        '  "${eventName}",',
+                                        '  function(e){',
+                                        '    document.getElementById("info").innerHTML="done";',
+                                        '    console.log(e);',
+                                        '});',
+                                        '</script>',
+                                        "</body>",
+                                        "</html>",
+                                        ].join("\n");
 
                             fs.writeFileSync(zip_html_fn,html);
 
@@ -1009,7 +1016,14 @@ module.exports = function ()
                            "<body>",
                            '<div id="info">loading...</div>',
                            '<script src="/'+path.basename(pako_loader_fn)+'"></script>',
-                           '<script>window.addEventListener("${eventName}",function(e){ document.getElementById("info").innerHTML="done"; console.log(e); });</script>',
+                           '<script>',
+                           'window.addEventListener(',
+                           '  "${eventName}",',
+                           '  function(e){',
+                           '    document.getElementById("info").innerHTML="done";',
+                           '    console.log(e);',
+                           '});',
+                           '</script>',
                            "</body>",
                            "</html>",
                            ].join("\n");
