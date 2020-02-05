@@ -710,8 +710,9 @@ module.exports = function ()
                                        "<html>",
                                        "<head></head>",
                                        "<body>",
-                                       "it all happens in the console.",
+                                       '<div id="info">loading...</div>',
                                        '<script src="/'+path.basename(zip_loader_fn)+'"></script>',
+                                       '<script>window.addEventListener("'+eventName+'",function(e){ document.getElementById("info").innerHTML="done"; console.log(e); });</script>',
                                        "</body>",
                                        "</html>",
                                        ].join("\n");
@@ -1006,8 +1007,9 @@ module.exports = function ()
                            "<html>",
                            "<head></head>",
                            "<body>",
-                           "it all happens in the console.",
+                           '<div id="info">loading...</div>',
                            '<script src="/'+path.basename(pako_loader_fn)+'"></script>',
+                           '<script>window.addEventListener("'+eventName+'",function(e){ document.getElementById("info").innerHTML="done"; console.log(e); });</script>',
                            "</body>",
                            "</html>",
                            ].join("\n");

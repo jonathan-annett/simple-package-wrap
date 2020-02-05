@@ -709,8 +709,9 @@ if (!$N) throw new Error("you need node.js to use this file");
                                        "<html>",
                                        "<head></head>",
                                        "<body>",
-                                       "it all happens in the console.",
+                                       '<div id="info">loading...</div>',
                                        '<script src="/'+path.basename(zip_loader_fn)+'"></script>',
+                                       '<script>window.addEventListener("'+eventName+'",function(e){ document.getElementById("info").innerHTML="done"; console.log(e); });</script>',
                                        "</body>",
                                        "</html>",
                                        ].join("\n");
@@ -1005,8 +1006,9 @@ if (!$N) throw new Error("you need node.js to use this file");
                            "<html>",
                            "<head></head>",
                            "<body>",
-                           "it all happens in the console.",
+                           '<div id="info">loading...</div>',
                            '<script src="/'+path.basename(pako_loader_fn)+'"></script>',
+                           '<script>window.addEventListener("'+eventName+'",function(e){ document.getElementById("info").innerHTML="done"; console.log(e); });</script>',
                            "</body>",
                            "</html>",
                            ].join("\n");
