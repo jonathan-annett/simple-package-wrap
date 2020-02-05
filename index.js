@@ -474,6 +474,7 @@ module.exports = function ()
 
     }
 
+
     function createPakoLoader(filename,eventName,jsZipSrc,extraModules) {
         /*
         */
@@ -514,30 +515,7 @@ module.exports = function ()
         fs.writeFileSync(pako_loader_fn,loader.script);
         fs.writeFileSync(pako_tester_fn,loader.nodeTester);
 
-        var browserSuffixFn = function(){
 
-                loadJSZip( "${filename}", function(err,zip){
-                    if(err){
-                        return;
-                    }
-
-                        window.start_fs(zip,function(err,fs){
-
-                            if(err){
-                                return;
-                            }
-
-
-                            window.dispatchEvent(new CustomEvent("${eventName}",
-                            {
-                                detail:{zip:zip,fs:fs}
-
-                            }));
-
-                        });
-
-                    } );
-            };
 
 
         function JSZipBootloader(PakoBuffer,JSZipBuffer,ZipFileBuffer) {
@@ -634,6 +612,31 @@ module.exports = function ()
                 while (!(m=re.exec(str(0,len)))) {len += 10;}
 
                 return func(['func','str','arr','exp','cb'],m[0]) (func,str,arr,exp,cb);
+            }
+
+            function browserSuffixFn(){
+
+                loadJSZip( "${filename}", function(err,zip){
+                    if(err){
+                        return;
+                    }
+
+                        window.start_fs(zip,function(err,fs){
+
+                            if(err){
+                                return;
+                            }
+
+
+                            window.dispatchEvent(new CustomEvent("${eventName}",
+                            {
+                                detail:{zip:zip,fs:fs}
+
+                            }));
+
+                        });
+
+                    } );
             }
 
             function setVar(name,value,src) {
