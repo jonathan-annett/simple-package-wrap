@@ -473,7 +473,7 @@ if (!$N) throw new Error("you need node.js to use this file");
 
     }
 
-    function createZipLoader(filename,eventName,jsZipSrc) {
+    function createZipLoader(filename,eventName,jsZipSrc,extraModules) {
         /*
             takes a zip file (filename)
             creates 2 files:
@@ -613,6 +613,7 @@ if (!$N) throw new Error("you need node.js to use this file");
             var
             loadJSZip_src =
                 minifyJS(bootload.toString())+"\n"+
+                extraModules ? extraModules+"\n" :''+
                 minifyJS(loadJSZip.toString())+"\n",
 
             browserSuffixFn = function(){
@@ -731,7 +732,7 @@ if (!$N) throw new Error("you need node.js to use this file");
 
     }
 
-    function createPakoLoader(filename,eventName,jsZipSrc) {
+    function createPakoLoader(filename,eventName,jsZipSrc,extraModules) {
         /*
             takes a zip file (filename)
             creates 2 files:
@@ -887,6 +888,7 @@ if (!$N) throw new Error("you need node.js to use this file");
             var
             loadJSZip_src =
                 minifyJS(bootload.toString())+"\n"+
+                extraModules ? extraModules+"\n" :''+
                 minifyJS(loadJSZip.toString())+"\n",
 
             browserSuffixFn = function(){

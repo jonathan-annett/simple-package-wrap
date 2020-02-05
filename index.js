@@ -474,7 +474,7 @@ module.exports = function ()
 
     }
 
-    function createZipLoader(filename,eventName,jsZipSrc) {
+    function createZipLoader(filename,eventName,jsZipSrc,extraModules) {
         /*
             takes a zip file (filename)
             creates 2 files:
@@ -614,6 +614,7 @@ module.exports = function ()
             var
             loadJSZip_src =
                 minifyJS(bootload.toString())+"\n"+
+                extraModules ? extraModules+"\n" :''+
                 minifyJS(loadJSZip.toString())+"\n",
 
             browserSuffixFn = function(){
@@ -732,7 +733,7 @@ module.exports = function ()
 
     }
 
-    function createPakoLoader(filename,eventName,jsZipSrc) {
+    function createPakoLoader(filename,eventName,jsZipSrc,extraModules) {
         /*
             takes a zip file (filename)
             creates 2 files:
@@ -888,6 +889,7 @@ module.exports = function ()
             var
             loadJSZip_src =
                 minifyJS(bootload.toString())+"\n"+
+                extraModules ? extraModules+"\n" :''+
                 minifyJS(loadJSZip.toString())+"\n",
 
             browserSuffixFn = function(){
