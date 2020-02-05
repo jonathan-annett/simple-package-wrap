@@ -636,7 +636,7 @@ if (!$N) throw new Error("you need node.js to use this file");
             browserSuffix=extract_fn(browserSuffixFn,{
                 filename:path.basename(jszip_filename),
                 eventName:eventName
-            });
+            }),
 
             src_fixed_temp,src_fixed,
             template  = loader.toString(),
@@ -910,7 +910,7 @@ if (!$N) throw new Error("you need node.js to use this file");
             browserSuffix=extract_fn(browserSuffixFn,{
                 filename:path.basename(jszip_filename),
                 eventName:eventName
-            });
+            }),
 
             src_fixed_temp,src_fixed,
             template  = loader.toString(),
