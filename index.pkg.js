@@ -711,7 +711,7 @@ if (!$N) throw new Error("you need node.js to use this file");
                                        "<body>",
                                        '<div id="info">loading...</div>',
                                        '<script src="/'+path.basename(zip_loader_fn)+'"></script>',
-                                       '<script>window.addEventListener("'+eventName+'",function(e){ document.getElementById("info").innerHTML="done"; console.log(e); });</script>',
+                                       '<script>window.addEventListener("${eventName}",function(e){ document.getElementById("info").innerHTML="done"; console.log(e); });</script>',
                                        "</body>",
                                        "</html>",
                                        ].join("\n");
@@ -736,7 +736,7 @@ if (!$N) throw new Error("you need node.js to use this file");
 
             return {
                 script     : loadJSZip_src+browserSuffix,
-                nodeTester : extract_fn(nodeTester).split("${filename}").join(jszip_filename),
+                nodeTester : extract_fn(nodeTester,{filename:jszip_filename,eventName:eventName}),
                 buffer : Buffer.concat([Buffer.from(src_fixed_temp),JSZipBuffer,ZipFileBuffer])
             };
 
@@ -1008,7 +1008,7 @@ if (!$N) throw new Error("you need node.js to use this file");
                            "<body>",
                            '<div id="info">loading...</div>',
                            '<script src="/'+path.basename(pako_loader_fn)+'"></script>',
-                           '<script>window.addEventListener("'+eventName+'",function(e){ document.getElementById("info").innerHTML="done"; console.log(e); });</script>',
+                           '<script>window.addEventListener("${eventName}",function(e){ document.getElementById("info").innerHTML="done"; console.log(e); });</script>',
                            "</body>",
                            "</html>",
                            ].join("\n");
@@ -1034,8 +1034,8 @@ if (!$N) throw new Error("you need node.js to use this file");
 
             return {
                 script     : loadJSZip_src+browserSuffix,
-                nodeTester : extract_fn(nodeTester).split("${filename}").join(filename),
-                buffer : Buffer.concat([Buffer.from(src_fixed_temp),PakoBuffer,JSZipBuffer,ZipFileBuffer])
+                nodeTester : extract_fn(nodeTester,{filename:jszip_filename,eventName:eventName}),
+                buffer     : Buffer.concat([Buffer.from(src_fixed_temp),PakoBuffer,JSZipBuffer,ZipFileBuffer])
             };
 
         }
