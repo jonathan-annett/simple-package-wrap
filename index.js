@@ -11,7 +11,7 @@ module.exports = function ()
     fs             = require("fs"),
     UglifyJS       = require("uglify-js"),
     babel          = require("babel-core"),
-    extract_fn     = function(fn,data,keep){
+    extract_fn     = function extract_fn(fn,data,keep){
         fn = fn.toString();
         if (!keep) fn = fn.substring(fn.indexOf('{')+1,fn.lastIndexOf('}')).trim();
         if (data) {
