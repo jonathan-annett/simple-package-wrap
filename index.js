@@ -474,294 +474,12 @@ module.exports = function ()
 
     }
 
-    function createZipLoader(filename,eventName,jsZipSrc,extraModules) {
-        /*
-            takes a zip file (filename)
-            creates 2 files:
-                filename.jszip
-                filename.zip-loader.js
-
-                when loaded in a browser, filename.zip-loader.js will load filename.jszip along with bundled JSZip
-                JSZip will be installed into window.JSZip
-
-                the zipfile will be opened and delivered as a zip object via dispatchEvent as a customEvent with the name eventName
-
-                note: filename.jszip is effectively the contents of the zip file, prefixed with
-                    - a small javascript function with a loader function
-                    - the minified JSZip source
-                    the small javascript function contains information detailing the position within the file of
-                    both the JSZip library (uncompressed but minified,)
-
-            */
-        var
-        fs  =require("fs"),
-        path=require("path"),
-        JSZipPackageFile=require.resolve("jszip"),
-        JSZipPackagePath=path.dirname(JSZipPackageFile),
-        JSZipMinifiedPath=jsZipSrc || path.join(JSZipPackagePath,"..","dist","jszip.min.js"),
-
-        jszip_filename = filename.replace(/\.zip$/,'.jszip'),
-        zip_loader_fn = filename.replace(/\.zip$/,'.zip-loader.js'),
-        zip_tester_fn = filename.replace(/\.zip$/,'.zip-tester.js'),
-        JSZipSourceBuffer = fs.readFileSync(JSZipMinifiedPath);
-
-        if (extraModules) JSZipSourceBuffer =
-            Buffer.concat([JSZipSourceBuffer,Buffer.from(extraModules)]);
-
-        var
-        loader = JSZipBootloader(JSZipSourceBuffer,fs.readFileSync(filename));
-
-        fs.writeFileSync(jszip_filename,loader.buffer);
-        fs.writeFileSync(zip_loader_fn,loader.script);
-        fs.writeFileSync(zip_tester_fn,loader.nodeTester);
-
-
-        function JSZipBootloader(JSZipBuffer,ZipFileBuffer) {
-
-            var JSZipOffsetStart,JSZipOffsetEnd,ZipFileOffsetStart,ZipFileOffsetEnd;
-
-            function loader(func,str,arr,exp,cb) {
-                var getJSZip=function(){return func([],str(JSZipOffsetStart,JSZipOffsetEnd))();};
-                try {
-                    getJSZip();
-                    var zip = new exp.JSZip();
-                    zip.loadAsync(arr(ZipFileOffsetStart,ZipFileOffsetEnd))
-                      .then(function(zip){cb(null,zip);})
-                      .catch(cb);
-                } catch(err) {
-                    cb(err);
-                }
-            }
-
-            function loadJSZip (url,cb) {
-
-                try {
-
-                    var xhr=new window.XMLHttpRequest();
-
-                    xhr.open('GET', url, true);
-
-                    if ("responseType" in xhr) {
-                        xhr.responseType = "arraybuffer";
-                        xhr.ab = function(){return xhr.response};
-                    } else {
-                        xhr.ab  = function () {
-                            var s=xhr.responseText,ab=new ArrayBuffer(s.length*2);
-                            var vw = new Uint16Array(ab);
-                            for (var i=0, l=s.length; i<l; i++) {
-                               vw[i] = s.charCodeAt(i);
-                            }
-                            return ab;
-                        };
-                    }
-
-                    if(xhr.overrideMimeType) {
-                        xhr.overrideMimeType("text/plain; charset=x-user-defined");
-                    }
-
-                    xhr.onreadystatechange = function (event) {
-                        if (xhr.readyState === 4) {
-                            if (xhr.status === 200 || xhr.status === 0) {
-                                try {
-                                    bootload(xhr.ab(),window,cb);
-                                } catch(err) {
-                                    cb(new Error(err));
-                                }
-                            } else {
-                                cb(new Error("Ajax error for " + url + " : " + this.status + " " + this.statusText));
-                            }
-                        }
-                    };
-
-                    xhr.send();
-
-                } catch (e) {
-                    cb(new Error(e), null);
-                }
-
-
-
-            }
-
-            function bootload(ab,exp,cb) {
-                var
-                F=Function,
-                arr=ab.slice.bind(ab),
-                str=function(a,b){return String.fromCharCode.apply(null,new Uint8Array(ab.slice(a,b)));},
-                len=+'${bootlength}',
-
-                re=new RegExp('^.*(?=\\/\\*)','s'),
-                //re=/\[[0-9|\s]{7},[0-9|\s]{7},[0-9|\s]{7}\]/,
-                m,newCall = function (Cls) {
-                   /*jshint -W058*/
-                   return new (F.prototype.bind.apply(Cls, arguments));
-                   /*jshint +W058*/
-                },func = function (args,code){
-                   return newCall.apply(this,[F].concat(args,[code]));
-                };
-
-                while (!(m=re.exec(str(0,len)))) {len += 10;}
-
-                return func(['func','str','arr','exp','cb'],m[0]) (func,str,arr,exp,cb);
-            }
-
-            function setVar(name,value,src) {
-                    return src.split(name).join(""+value);
-            }
-
-            function setValues(obj,src) {
-                Object.keys(obj).forEach(function(k){
-                    src=setVar(k,obj[k],src);
-                });
-                return src;
-            }
-
-            var
-
-            template  = loader.toString(),
-            loadJSZip_src =
-            minifyJS(extract_fn(bootload,{bootlength:template.length+20},true))+"\n"+
-            minifyJS(loadJSZip.toString())+"\n",
-
-            browserSuffixFn = function(){
-
-                loadJSZip( "${filename}", function(err,zip){
-                    if(err){
-                        return;
-                    }
-
-                        window.start_fs(zip,function(err,fs){
-
-                            if(err){
-                                return;
-                            }
-
-
-                            window.dispatchEvent(new CustomEvent("${eventName}",
-                            {
-                                detail:{zip:zip,fs:fs}
-
-                            }));
-
-                        });
-
-                    } );
-            },
-
-            browserSuffix=minifyJS(extract_fn(browserSuffixFn,{
-                filename:path.basename(jszip_filename),
-                eventName:eventName
-            })),
-
-            src_fixed_temp,src_fixed,
-            setVars=function() {
-                JSZipOffsetStart   = src_fixed.length;
-                JSZipOffsetEnd     = JSZipOffsetStart+JSZipBuffer.length;
-                ZipFileOffsetStart = JSZipOffsetEnd;
-                ZipFileOffsetEnd   = ZipFileOffsetStart+ZipFileBuffer.length;
-                src_fixed_temp = minifyJS(
-                    setValues({
-                    JSZipOffsetStart   : JSZipOffsetStart,
-                    JSZipOffsetEnd     : JSZipOffsetEnd,
-                    ZipFileOffsetStart : ZipFileOffsetStart,
-                    ZipFileOffsetEnd   : ZipFileOffsetEnd
-                },template));
-            };
-
-            src_fixed = template = extract_fn(template)+"\n";
-
-            setVars();
-
-            while (src_fixed.length !==src_fixed_temp.length) {
-                src_fixed = src_fixed_temp;
-                setVars();
-            }
-
-            function nodeTester () {
-
-
-                            var
-                            fs = require("fs"),
-                            path = require("path"),
-                            express=require("express"),
-                            app = express(),
-                            filename = path.resolve("${filename}"),
-                            jszip_filename = filename.replace(/\.zip$/,'.jszip'),
-                            zip_loader_fn = filename.replace(/\.zip$/,'.zip-loader.js'),
-                            zip_html_fn = filename.replace(/\.zip$/,'.zip-tester.html'),
-                            //chromebooks do something funky with localhost under penguin/crostini, so help a coder out....
-                            hostname = isChromebook() ? "penguin.termina.linux.test" : "localhost",
-                            child_process           = require("child_process");
-
-                            function isChromebook() {
-                                var os = require("os");
-                                if (os.hostname()==="penguin" && os.platform()==="linux") {
-                                    var run=require("child_process").execSync;
-                                    try {
-                                        var cmd = run ("which systemd-detect-virt").toString().trim();
-                                        return (run(cmd).toString().trim()==="lxc");
-                                    } catch (e) {
-
-                                    }
-                                }
-                                return false;
-                            }
-
-                            var html = [
-                                        "<html>",
-                                        "<head></head>",
-                                        "<body>",
-                                        '<div id="info">loading...</div>',
-                                        '<script src="/'+path.basename(zip_loader_fn)+'"></script>',
-                                        '<script>',
-                                        'window.addEventListener(',
-                                        '  "${eventName}",',
-                                        '  function(e){',
-                                        '    document.getElementById("info").innerHTML="done";',
-                                        '    console.log(e);',
-                                        '});',
-                                        '</script>',
-                                        "</body>",
-                                        "</html>",
-                                        ].join("\n");
-
-                            fs.writeFileSync(zip_html_fn,html);
-
-                            app.use("/"+path.basename(jszip_filename), express.static(jszip_filename));
-                            app.use("/"+path.basename(zip_loader_fn), express.static(zip_loader_fn));
-                            app.get("/", function(req,res){
-                                res.send(html);
-                            });
-
-
-                            var listener = app.listen(3000, function() {
-                               var url =  'http://'+hostname+':' + listener.address().port + "/";
-                               console.log('goto '+url);
-                               child_process.spawn("xdg-open",[url]);
-                           });
-
-
-                        }
-
-            return {
-                script     : loadJSZip_src+browserSuffix,
-                nodeTester : extract_fn(nodeTester,{filename:filename,eventName:eventName}),
-                buffer : Buffer.concat([Buffer.from(src_fixed_temp),JSZipBuffer,ZipFileBuffer])
-            };
-
-        }
-
-    }
-
     function createPakoLoader(filename,eventName,jsZipSrc,extraModules) {
         /*
-            functionally identical to createZipLoader() however:
-            jszip source is precompressed as a zlib deflate-stream, with pako-defalte minify code
-            injected at the start to reduce size of overall payload
-            this could possibly be reduced further by emovo
-
         */
         var
+
+        // nodejs mods used
         fs   = require("fs"),
         path = require("path"),
         zlib = require('zlib'),
@@ -795,6 +513,32 @@ module.exports = function ()
         fs.writeFileSync(jszip_filename,loader.buffer);
         fs.writeFileSync(pako_loader_fn,loader.script);
         fs.writeFileSync(pako_tester_fn,loader.nodeTester);
+
+        var browserSuffixFn = function(){
+
+                loadJSZip( "${filename}", function(err,zip){
+                    if(err){
+                        return;
+                    }
+
+                        window.start_fs(zip,function(err,fs){
+
+                            if(err){
+                                return;
+                            }
+
+
+                            window.dispatchEvent(new CustomEvent("${eventName}",
+                            {
+                                detail:{zip:zip,fs:fs}
+
+                            }));
+
+                        });
+
+                    } );
+            };
+
 
         function JSZipBootloader(PakoBuffer,JSZipBuffer,ZipFileBuffer) {
 
@@ -910,31 +654,6 @@ module.exports = function ()
             loadJSZip_src =
             minifyJS(extract_fn(bootload,{bootlength:template.length+20},true))+"\n"+
             minifyJS(loadJSZip.toString())+"\n",
-
-            browserSuffixFn = function(){
-
-                loadJSZip( "${filename}", function(err,zip){
-                    if(err){
-                        return;
-                    }
-
-                        window.start_fs(zip,function(err,fs){
-
-                            if(err){
-                                return;
-                            }
-
-
-                            window.dispatchEvent(new CustomEvent("${eventName}",
-                            {
-                                detail:{zip:zip,fs:fs}
-
-                            }));
-
-                        });
-
-                    } );
-            },
 
             browserSuffix=minifyJS(extract_fn(browserSuffixFn,{
                 filename:path.basename(jszip_filename),
@@ -1056,7 +775,6 @@ module.exports = function ()
         serveMulti       : serveMulti,
         serveNamed       : serveNamed,
         minifyJS         : minifyJS,
-        createZipLoader  : createZipLoader,
         createPakoLoader : createPakoLoader
     };
 
@@ -1072,7 +790,6 @@ if(!process.mainModule) {
     global.buildNamed       = mod.buildNamed;
     global.serveNamed       = mod.serveNamed;
     global.serveMulti       = mod.serveMulti;
-    global.createZipLoader  = mod.createZipLoader;
     global.createPakoLoader = mod.createPakoLoader;
 
 } else {
@@ -1099,13 +816,6 @@ if(!process.mainModule) {
                 });
             });
         });
-    }
-
-    if (process.mainModule===module && process.argv.indexOf("--ziptest")>0) {
-
-        mod = module.exports();
-        mod.createZipLoader("./test.zip","zipLoaded");
-
     }
 
     if (process.mainModule===module && process.argv.indexOf("--pakotest")>0) {
