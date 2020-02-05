@@ -862,7 +862,7 @@ if (!$N) throw new Error("you need node.js to use this file");
                 minifyJS(loadJSZip.toString())+"\n",
             browserSuffix=
                 "loadJSZip('"+path.basename(jszip_filename)+"',"+
-                "function(err,zip){if(!err){console.log(zip);window.dispatchEvent(new CustomEvent('"+eventName+"',{detail:{zip:zip}}));}});\n}",
+                "function(err,zip){if(!err){console.log(zip);window.dispatchEvent(new CustomEvent('"+eventName+"',{detail:{zip:zip}}));}});\n",
             src_fixed_temp,src_fixed,
             template  = loader.toString(),
             setVars=function() {
