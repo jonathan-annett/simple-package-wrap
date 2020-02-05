@@ -634,7 +634,7 @@ module.exports = function ()
                     }} );
             },
 
-            browserSuffix=extract_fn(browserSuffixFn{
+            browserSuffix=extract_fn(browserSuffixFn,{
                 filename:path.basename(jszip_filename),
                 eventName:eventName
             });
@@ -908,7 +908,7 @@ module.exports = function ()
                     }} );
             },
 
-            browserSuffix=extract_fn(browserSuffixFn{
+            browserSuffix=extract_fn(browserSuffixFn,{
                 filename:path.basename(jszip_filename),
                 eventName:eventName
             });

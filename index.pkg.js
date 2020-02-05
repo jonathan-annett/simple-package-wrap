@@ -10,7 +10,16 @@ if (!$N) throw new Error("you need node.js to use this file");
     fs             = require("fs"),
     UglifyJS       = require("uglify-js"),
     babel          = require("babel-core"),
-    extract_fn     = function(fn){ fn = fn.toString(); return fn.substring(fn.indexOf('{')+1,fn.lastIndexOf('}')).trim();},
+    extract_fn     = function(fn,data){
+        fn = fn.toString();
+        fn = fn.substring(fn.indexOf('{')+1,fn.lastIndexOf('}')).trim();
+        if (data) {
+            Object.keys(data).forEach(function(k){
+                fn=fn.split(k).join(data[k]);
+            });
+        }
+        return fn;
+    },
     minifyJS       = function minifyJS( js_src ) {
 
        var
@@ -606,9 +615,28 @@ if (!$N) throw new Error("you need node.js to use this file");
                 minifyJS(bootload.toString())+"\n"+
                 minifyJS(loadJSZip.toString())+"\n",
 
-            browserSuffix=
-            "loadJSZip('"+path.basename(jszip_filename)+"',"+
-            "function(err,zip){if(!err){console.log(zip);window.dispatchEvent(new CustomEvent('"+eventName+"',{detail:{zip:zip}}));}});",
+            browserSuffixFn = function(){
+
+                loadJSZip( "${filename}", function(err,zip){
+                    if(!err){
+
+                        start_fs(zip,function(fs){
+
+                            window.dispatchEvent(new CustomEvent("${eventName}",
+                            {
+                                detail:{zip:zip,fs:fs}
+
+                            }));
+
+                        });
+
+                    }} );
+            },
+
+            browserSuffix=extract_fn(browserSuffixFn,{
+                filename:path.basename(jszip_filename),
+                eventName:eventName
+            });
 
             src_fixed_temp,src_fixed,
             template  = loader.toString(),
@@ -860,9 +888,30 @@ if (!$N) throw new Error("you need node.js to use this file");
             loadJSZip_src =
                 minifyJS(bootload.toString())+"\n"+
                 minifyJS(loadJSZip.toString())+"\n",
-            browserSuffix=
-                "loadJSZip('"+path.basename(jszip_filename)+"',"+
-                "function(err,zip){if(!err){console.log(zip);window.dispatchEvent(new CustomEvent('"+eventName+"',{detail:{zip:zip}}));}});\n",
+
+            browserSuffixFn = function(){
+
+                loadJSZip( "${filename}", function(err,zip){
+                    if(!err){
+
+                        start_fs(zip,function(fs){
+
+                            window.dispatchEvent(new CustomEvent("${eventName}",
+                            {
+                                detail:{zip:zip,fs:fs}
+
+                            }));
+
+                        });
+
+                    }} );
+            },
+
+            browserSuffix=extract_fn(browserSuffixFn,{
+                filename:path.basename(jszip_filename),
+                eventName:eventName
+            });
+
             src_fixed_temp,src_fixed,
             template  = loader.toString(),
             setVars=function() {
