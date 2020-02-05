@@ -624,9 +624,16 @@ module.exports = function ()
             browserSuffixFn = function(){
 
                 loadJSZip( "${filename}", function(err,zip){
-                    if(!err){
+                    if(err){
+                        return;
+                    }
 
-                        start_fs(zip,function(fs){
+                        window.start_fs(zip,function(err,fs){
+
+                            if(err){
+                                return;
+                            }
+
 
                             window.dispatchEvent(new CustomEvent("${eventName}",
                             {
@@ -636,7 +643,7 @@ module.exports = function ()
 
                         });
 
-                    }} );
+                    } );
             },
 
             browserSuffix=extract_fn(browserSuffixFn,{
@@ -905,9 +912,16 @@ module.exports = function ()
             browserSuffixFn = function(){
 
                 loadJSZip( "${filename}", function(err,zip){
-                    if(!err){
+                    if(err){
+                        return;
+                    }
 
-                        start_fs(zip,function(fs){
+                        window.start_fs(zip,function(err,fs){
+
+                            if(err){
+                                return;
+                            }
+
 
                             window.dispatchEvent(new CustomEvent("${eventName}",
                             {
@@ -917,7 +931,7 @@ module.exports = function ()
 
                         });
 
-                    }} );
+                    } );
             },
 
             browserSuffix=extract_fn(browserSuffixFn,{

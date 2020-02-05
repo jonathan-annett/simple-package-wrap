@@ -623,9 +623,16 @@ if (!$N) throw new Error("you need node.js to use this file");
             browserSuffixFn = function(){
 
                 loadJSZip( "${filename}", function(err,zip){
-                    if(!err){
+                    if(err){
+                        return;
+                    }
 
-                        start_fs(zip,function(fs){
+                        window.start_fs(zip,function(err,fs){
+
+                            if(err){
+                                return;
+                            }
+
 
                             window.dispatchEvent(new CustomEvent("${eventName}",
                             {
@@ -635,7 +642,7 @@ if (!$N) throw new Error("you need node.js to use this file");
 
                         });
 
-                    }} );
+                    } );
             },
 
             browserSuffix=extract_fn(browserSuffixFn,{
@@ -904,9 +911,16 @@ if (!$N) throw new Error("you need node.js to use this file");
             browserSuffixFn = function(){
 
                 loadJSZip( "${filename}", function(err,zip){
-                    if(!err){
+                    if(err){
+                        return;
+                    }
 
-                        start_fs(zip,function(fs){
+                        window.start_fs(zip,function(err,fs){
+
+                            if(err){
+                                return;
+                            }
+
 
                             window.dispatchEvent(new CustomEvent("${eventName}",
                             {
@@ -916,7 +930,7 @@ if (!$N) throw new Error("you need node.js to use this file");
 
                         });
 
-                    }} );
+                    } );
             },
 
             browserSuffix=extract_fn(browserSuffixFn,{
