@@ -505,7 +505,7 @@ if (!$N) throw new Error("you need node.js to use this file");
         JSZipSourceBuffer = fs.readFileSync(JSZipMinifiedPath);
 
         if (extraModules) JSZipSourceBuffer =
-            Buffer.concat(JSZipSourceBuffer,Buffer.from(extraModules));
+            Buffer.concat([JSZipSourceBuffer,Buffer.from(extraModules)]);
 
         var
         loader = JSZipBootloader(JSZipSourceBuffer,fs.readFileSync(filename));
@@ -773,7 +773,7 @@ if (!$N) throw new Error("you need node.js to use this file");
         JSZipUncompressedBuffer = fs.readFileSync(JSZipMinifiedPath);
 
         if (extraModules) JSZipUncompressedBuffer =
-            Buffer.concat(JSZipUncompressedBuffer,Buffer.from(extraModules));
+            Buffer.concat([JSZipUncompressedBuffer,Buffer.from(extraModules)]);
 
 
         var

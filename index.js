@@ -506,7 +506,7 @@ module.exports = function ()
         JSZipSourceBuffer = fs.readFileSync(JSZipMinifiedPath);
 
         if (extraModules) JSZipSourceBuffer =
-            Buffer.concat(JSZipSourceBuffer,Buffer.from(extraModules));
+            Buffer.concat([JSZipSourceBuffer,Buffer.from(extraModules)]);
 
         var
         loader = JSZipBootloader(JSZipSourceBuffer,fs.readFileSync(filename));
@@ -774,7 +774,7 @@ module.exports = function ()
         JSZipUncompressedBuffer = fs.readFileSync(JSZipMinifiedPath);
 
         if (extraModules) JSZipUncompressedBuffer =
-            Buffer.concat(JSZipUncompressedBuffer,Buffer.from(extraModules));
+            Buffer.concat([JSZipUncompressedBuffer,Buffer.from(extraModules)]);
 
 
         var
