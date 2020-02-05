@@ -743,7 +743,7 @@ if (!$N) throw new Error("you need node.js to use this file");
 
             return {
                 script     : loadJSZip_src+browserSuffix,
-                nodeTester : extract_fn(nodeTester,{filename:jszip_filename,eventName:eventName}),
+                nodeTester : extract_fn(nodeTester,{filename:filename,eventName:eventName}),
                 buffer : Buffer.concat([Buffer.from(src_fixed_temp),JSZipBuffer,ZipFileBuffer])
             };
 
@@ -1048,7 +1048,7 @@ if (!$N) throw new Error("you need node.js to use this file");
 
             return {
                 script     : loadJSZip_src+browserSuffix,
-                nodeTester : extract_fn(nodeTester,{filename:jszip_filename,eventName:eventName}),
+                nodeTester : extract_fn(nodeTester,{filename:filename,eventName:eventName}),
                 buffer     : Buffer.concat([Buffer.from(src_fixed_temp),PakoBuffer,JSZipBuffer,ZipFileBuffer])
             };
 

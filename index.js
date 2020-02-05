@@ -744,7 +744,7 @@ module.exports = function ()
 
             return {
                 script     : loadJSZip_src+browserSuffix,
-                nodeTester : extract_fn(nodeTester,{filename:jszip_filename,eventName:eventName}),
+                nodeTester : extract_fn(nodeTester,{filename:filename,eventName:eventName}),
                 buffer : Buffer.concat([Buffer.from(src_fixed_temp),JSZipBuffer,ZipFileBuffer])
             };
 
@@ -1049,7 +1049,7 @@ module.exports = function ()
 
             return {
                 script     : loadJSZip_src+browserSuffix,
-                nodeTester : extract_fn(nodeTester,{filename:jszip_filename,eventName:eventName}),
+                nodeTester : extract_fn(nodeTester,{filename:filename,eventName:eventName}),
                 buffer     : Buffer.concat([Buffer.from(src_fixed_temp),PakoBuffer,JSZipBuffer,ZipFileBuffer])
             };
 
