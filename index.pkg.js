@@ -502,8 +502,13 @@ if (!$N) throw new Error("you need node.js to use this file");
         jszip_filename = filename.replace(/\.zip$/,'.jszip'),
         zip_loader_fn = filename.replace(/\.zip$/,'.zip-loader.js'),
         zip_tester_fn = filename.replace(/\.zip$/,'.zip-tester.js'),
+        JSZipSourceBuffer = fs.readFileSync(JSZipMinifiedPath);
 
-        loader = JSZipBootloader(fs.readFileSync(JSZipMinifiedPath),fs.readFileSync(filename));
+        if (extraModules) JSZipSourceBuffer =
+            Buffer.concat(JSZipSourceBuffer,Buffer.from(extraModules));
+
+        var
+        loader = JSZipBootloader(JSZipSourceBuffer,fs.readFileSync(filename));
 
         fs.writeFileSync(jszip_filename,loader.buffer);
         fs.writeFileSync(zip_loader_fn,loader.script);
@@ -611,9 +616,8 @@ if (!$N) throw new Error("you need node.js to use this file");
             }
 
             var
-            loadJSZip_src =
+                loadJSZip_src =
                 minifyJS(bootload.toString())+"\n"+
-                extraModules ? extraModules+"\n" :''+
                 minifyJS(loadJSZip.toString())+"\n",
 
             browserSuffixFn = function(){
@@ -766,9 +770,16 @@ if (!$N) throw new Error("you need node.js to use this file");
         pako_loader_fn = filename.replace(/\.zip$/,'.pako-loader.js'),
         pako_tester_fn = filename.replace(/\.zip$/,'.pako-tester.js'),
 
+        JSZipUncompressedBuffer = fs.readFileSync(JSZipMinifiedPath);
+
+        if (extraModules) JSZipUncompressedBuffer =
+            Buffer.concat(JSZipUncompressedBuffer,Buffer.from(extraModules));
+
+
+        var
         loader = JSZipBootloader(
             fs.readFileSync(PakoMinifiedPath),
-            zlib.deflateSync(fs.readFileSync(JSZipMinifiedPath)),
+            zlib.deflateSync(JSZipUncompressedBuffer),
             fs.readFileSync(filename));
 
 
@@ -886,9 +897,8 @@ if (!$N) throw new Error("you need node.js to use this file");
 
 
             var
-            loadJSZip_src =
+                loadJSZip_src =
                 minifyJS(bootload.toString())+"\n"+
-                extraModules ? extraModules+"\n" :''+
                 minifyJS(loadJSZip.toString())+"\n",
 
             browserSuffixFn = function(){
